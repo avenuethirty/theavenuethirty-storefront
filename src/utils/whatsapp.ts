@@ -1,0 +1,69 @@
+export interface GuestDetails {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  notes?: string;
+}
+
+export interface CartItem {
+  product: {
+    id: string;
+    name: string;
+    priceMonthly: number;
+  };
+  quantity: number;
+}
+
+export interface WhatsAppPayload {
+  orderId: string;
+  items: CartItem[];
+  total: number;
+  guest: GuestDetails;
+  storePhone: string;
+}
+
+const SELLER_TOKEN = import.meta.env.VITE_CIRCLE_SELLER_TOKEN || "zr8meg5xv3qu";
+const CATALOG_LINK = `https://bajihustler.circlewomen.com/catalogue/${SELLER_TOKEN}`;
+
+export function buildWhatsAppLink({
+  orderId,
+  items,
+  total,
+  guest,
+  storePhone,
+}: WhatsAppPayload): string {
+  const itemLines = items
+    .map(
+      (item) =>
+        `• ${item.product.name} x${item.quantity} — $${(item.product.priceMonthly * item.quantity).toFixed(2)}`
+    )
+    .join("%0A");
+
+  const message = encodeURIComponent(
+    [
+      `Hi, I would like to confirm my order #${orderId}.`,
+      "",
+      "Items:",
+      itemLines,
+      "",
+      `Total: $${total.toFixed(2)}`,
+      "",
+      "Delivery Details:",
+      `Name: ${guest.fullName}`,
+      `Phone: ${guest.phone}`,
+      `Address: ${guest.address}, ${guest.city}`,
+      guest.notes ? `Notes: ${guest.notes}` : "",
+      "",
+      `Shop this catalog: ${CATALOG_LINK}`,
+      "",
+      "Please confirm availability and delivery timeline. Thank you!",
+    ]
+      .filter((line) => line !== "")
+      .join("\n")
+  );
+
+  const phone = storePhone.replace(/[^0-9]/g, "");
+
+  return `https://wa.me/${phone}?text=${message}`;
+}
