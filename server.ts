@@ -3,6 +3,7 @@ import { createServer } from 'vite';
 import path from 'path';
 import dotenv from 'dotenv';
 import { createHubspotDeal } from './src/server/hubspot';
+import { SHOP_CONFIG } from './src/config/shop';
 
 dotenv.config();
 
@@ -14,7 +15,7 @@ if (!hubspotToken) {
   console.log(`HubSpot token loaded: ${masked}`);
 }
 
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const GROQ_MODEL = SHOP_CONFIG.ai.model;
 const GOOGLE_SHEET_CSV_URL = process.env.GOOGLE_SHEET_CSV_URL || 'https://docs.google.com/spreadsheets/d/1LkSL5CL0c80b_6iqVd8FH_uAnm3PwjZv4_Wh_R6xETo/export?format=csv';
 
 const CATEGORY_SLUG_MAP: Record<string, string> = {

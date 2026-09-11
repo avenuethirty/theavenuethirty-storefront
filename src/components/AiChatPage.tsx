@@ -15,7 +15,8 @@ import {
   MessageSquare, 
   ShieldCheck, 
   Pill, 
-  Sparkle,
+  Sparkle, 
+  Trash2,
   Upload, 
   X, 
   RefreshCw, 
@@ -105,47 +106,47 @@ interface AiChatPageProps {
 
 const DEFAULT_PROMPTS = [
   {
-    title: 'Find My Routine',
+    title: 'Find My Skincare Routine',
     desc: 'Get a simple daily routine for clear, glowing skin.',
-    query: 'Recommend a simple 3-step daily routine for clear, glowing skin using The Avenue Thirty products.'
+    query: 'Get a simple daily routine for clear, glowing skin.'
   },
   {
-    title: 'Glass Skin Bundle Details',
-    desc: 'Everything inside the Flawless Glass Skin Bundle and how to use it.',
-    query: 'Tell me what is inside the Flawless Glass Skin Bundle and how to use it.'
+    title: 'Explore Jewellery',
+    desc: 'Browse jewellery pieces from The Avenue Thirty.',
+    query: 'Show me jewellery pieces from The Avenue Thirty.'
   },
   {
-    title: 'SPF Guidance',
-    desc: 'Which sunscreen suits my skin tone and routine.',
-    query: 'Which SPF 50+ sunscreen should I use for daily protection and melasma prevention?'
+    title: 'Find My Bag',
+    desc: 'Which bag from The Avenue Thirty suits my outfit?',
+    query: 'Which bag from The Avenue Thirty suits my outfit?'
   },
   {
-    title: 'Style Match',
-    desc: 'Match a bag or bracelet to your outfit aesthetic.',
-    query: 'I am wearing a neutral minimalist outfit. Which bag or jewellery piece from The Avenue Thirty would complement it?'
+    title: 'Style Assistance',
+    desc: 'Help me pick the right accessory for my look.',
+    query: 'Help me pick the right accessory for my look.'
   }
 ];
 
 const QUICK_ACTIONS = [
   {
-    title: 'Browse Skincare',
+    title: 'Find My Skincare Routine',
     icon: Pill,
-    query: 'Show me skincare products from The Avenue Thirty'
+    query: 'Get a simple daily routine for clear, glowing skin.'
   },
   {
-    title: 'Explore Accessories',
+    title: 'Explore Jewellery',
     icon: ShoppingBag,
-    query: 'Show me accessories and bags from The Avenue Thirty'
+    query: 'Show me jewellery pieces from The Avenue Thirty.'
   },
   {
-    title: 'Clearance Deals',
-    icon: ShieldCheck,
-    query: 'Do you have any clearance deals or discounted items?'
+    title: 'Find My Bag',
+    icon: ShoppingBag,
+    query: 'Which bag from The Avenue Thirty suits my outfit?'
   },
   {
-    title: 'Glass Skin Routine',
+    title: 'Style Assistance',
     icon: Sparkle,
-    query: 'I want a glass skin routine. What products do you recommend?'
+    query: 'Help me pick the right accessory for my look.'
   }
 ];
 
@@ -192,8 +193,8 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
 
   useEffect(() => {
     try {
-      const storedThreads = localStorage.getItem(STORAGE_KEY_THREADS);
-      const storedActive = localStorage.getItem(STORAGE_KEY_ACTIVE);
+      const storedThreads = sessionStorage.getItem(STORAGE_KEY_THREADS);
+      const storedActive = sessionStorage.getItem(STORAGE_KEY_ACTIVE);
       
       let loadedThreads: ChatThread[] = [];
       if (storedThreads) {
@@ -228,12 +229,17 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
       setActiveThreadId(newThread.id);
       setMessages([]);
     }
+    
+    try {
+      localStorage.removeItem(STORAGE_KEY_THREADS);
+      localStorage.removeItem(STORAGE_KEY_ACTIVE);
+    } catch {}
   }, []);
 
   const persistThreads = (updatedThreads: ChatThread[], activeId: string) => {
     try {
-      localStorage.setItem(STORAGE_KEY_THREADS, JSON.stringify(updatedThreads));
-      localStorage.setItem(STORAGE_KEY_ACTIVE, activeId);
+      sessionStorage.setItem(STORAGE_KEY_THREADS, JSON.stringify(updatedThreads));
+      sessionStorage.setItem(STORAGE_KEY_ACTIVE, activeId);
     } catch {
       // ignore storage errors
     }
@@ -390,6 +396,31 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     setSelectedImagePreview(null);
   };
 
+  const handleDeleteThread = (threadId: string) => {
+    setThreads(prev => {
+      const updated = prev.filter(t => t.id !== threadId);
+      
+      if (updated.length === 0) {
+        const newThread: ChatThread = {
+          id: `thread-${Date.now()}`,
+          title: 'New Chat',
+          date: 'Today',
+          messages: []
+        };
+        persistThreads([newThread], newThread.id);
+        setActiveThreadId(newThread.id);
+        setMessages([]);
+        return [newThread];
+      }
+      
+      const nextActiveId = activeThreadId === threadId ? updated[0].id : activeThreadId;
+      persistThreads(updated, nextActiveId);
+      setActiveThreadId(nextActiveId);
+      setMessages(updated.find(t => t.id === nextActiveId)?.messages || []);
+      return updated;
+    });
+  };
+
   const handlePromptClick = (promptQuery: string) => {
     handleSend(undefined, promptQuery);
   };
@@ -494,6 +525,16 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                     >
                       <MessageSquare className="w-3.5 h-3.5 shrink-0 text-neutral-400" />
                       <span className="truncate flex-1">{t.title}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteThread(t.id);
+                        }}
+                        className="p-1 text-neutral-500 hover:text-red-400 transition-colors cursor-pointer shrink-0"
+                        title="Delete chat"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </button>
                   ))}
                 </div>
