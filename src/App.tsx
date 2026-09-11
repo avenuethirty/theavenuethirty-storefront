@@ -19,14 +19,7 @@ import { Product, CartItem } from './types';
 import { PRODUCTS } from './data/mockData';
 
 export default function App() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      product: PRODUCTS[0],
-      quantity: 1,
-      customFormulaName: 'Avenue Custom Formulation #A-24',
-      frequency: 'Monthly'
-    }
-  ]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const [isConsultationOpen, setIsConsultationOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);

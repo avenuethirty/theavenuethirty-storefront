@@ -134,4 +134,3 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ onAddToCart, onOpenCon
     </section>
   );
 };
-

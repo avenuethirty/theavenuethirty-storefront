@@ -15,6 +15,27 @@ interface CartDrawerProps {
 
 type Slide = 'cart' | 'delivery' | 'confirmation';
 
+const PAKISTANI_CITIES = [
+  "Karachi",
+  "Lahore",
+  "Islamabad",
+  "Rawalpindi",
+  "Faisalabad",
+  "Peshawar",
+  "Multan",
+  "Gujranwala",
+  "Sialkot",
+  "Quetta",
+  "Hyderabad",
+  "Bahawalpur",
+  "Sargodha",
+  "Sukkur",
+  "Abbottabad",
+  "Mardan",
+  "Gujrat",
+  "Sheikhupura",
+] as const;
+
 export const CartDrawer: React.FC<CartDrawerProps> = ({
   isOpen,
   onClose,
@@ -33,6 +54,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     notes: '',
   });
   const [orderId, setOrderId] = useState('');
+  const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -40,6 +62,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     (acc, item) => acc + item.product.priceMonthly * item.quantity,
     0
   );
+
+  const shippingFee = subtotal >= SHOP_CONFIG.shipping.freeShippingThreshold ? 0 : SHOP_CONFIG.shipping.defaultFee;
+  const total = subtotal + shippingFee;
+  const currencySymbol = SHOP_CONFIG.localization.currencySymbol;
 
   const generateOrderId = () => {
     const num = Math.floor(1000 + Math.random() * 9000);
@@ -51,32 +77,46 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     setOrderId(newOrderId);
     setOrderComplete(true);
     setSlide('confirmation');
+    setCheckoutStatus(null);
 
     const itemsSummary = cartItems
       .map((item) => `${item.product.name} x${item.quantity}`)
       .join(', ');
 
-    fetch('/api/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: guest.fullName,
-        phone: guest.phone,
-        email: '',
-        city: guest.city,
-        address: guest.address,
-        totalAmount: subtotal,
-        itemsSummary,
-      }),
-    }).catch((err) => {
-      console.error('Background HubSpot sync error:', err);
-    });
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: guest.fullName,
+          phone: guest.phone,
+          email: '',
+          city: guest.city,
+          address: guest.address,
+          totalAmount: total,
+          itemsSummary,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setCheckoutStatus('Order synced successfully.');
+      } else {
+        const errorMsg = data.error || 'Unknown error';
+        setCheckoutStatus(`Sync failed: ${errorMsg}`);
+        console.error('Checkout sync failed:', errorMsg);
+      }
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Network error';
+      setCheckoutStatus(`Sync failed: ${errorMsg}`);
+      console.error('Checkout sync error:', err);
+    }
   };
 
   const whatsappUrl = buildWhatsAppLink({
     orderId,
     items: cartItems,
-    total: subtotal,
+    total,
     guest,
     storePhone,
   });
@@ -136,6 +176,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               >
                 Return to Store
               </button>
+              {checkoutStatus && (
+                <p className="text-[11px] text-neutral-500 mt-2">{checkoutStatus}</p>
+              )}
             </div>
           ) : slide === 'cart' ? (
             cartItems.length === 0 ? (
@@ -196,7 +239,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
 
                       <span className="font-bold text-sm text-[#111110]">
-                        ${(item.product.priceMonthly * item.quantity).toFixed(2)}
+                        {currencySymbol}{(item.product.priceMonthly * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -222,41 +265,46 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1">WhatsApp / Phone Number</label>
+                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Phone number</label>
                   <input
                     type="tel"
                     value={guest.phone}
                     onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
                     className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800"
-                    placeholder="+1 234 567 890"
+                    placeholder="03007172007"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Shipping Address</label>
-                  <input
-                    type="text"
+                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Delivery Address</label>
+                  <textarea
                     value={guest.address}
                     onChange={(e) => setGuest({ ...guest, address: e.target.value })}
-                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800"
-                    placeholder="Street address"
+                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 resize-none"
+                    rows={2}
+                    placeholder="House, street, area"
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-neutral-600 mb-1">City</label>
-                  <input
-                    type="text"
+                  <select
                     value={guest.city}
                     onChange={(e) => setGuest({ ...guest, city: e.target.value })}
-                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800"
-                    placeholder="City"
-                  />
+                    className="w-full border border neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
+                  >
+                    <option value="">Select city</option>
+                    {PAKISTANI_CITIES.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Delivery Notes (optional)</label>
                   <textarea
                     value={guest.notes}
                     onChange={(e) => setGuest({ ...guest, notes: e.target.value })}
-                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 resize-none"
+                    className="w-full border border neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 resize-none"
                     rows={2}
                     placeholder="Gate code, preferred delivery window..."
                   />
@@ -272,15 +320,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="space-y-2 text-xs text-neutral-600">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="font-bold text-[#111110]">${subtotal.toFixed(2)}</span>
+                <span className="font-bold text-[#111110]">
+                  {currencySymbol}{subtotal.toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span className="font-bold text-emerald-700">FREE</span>
+                <span className="font-bold text-emerald-700">
+                  {shippingFee === 0 ? 'FREE' : `${currencySymbol}${shippingFee.toFixed(2)}`}
+                </span>
               </div>
               <div className="flex justify-between text-sm font-bold text-[#111110] pt-2 border-t border-neutral-200">
                 <span>Total</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>
+                  {currencySymbol}{total.toFixed(2)}
+                </span>
               </div>
             </div>
 

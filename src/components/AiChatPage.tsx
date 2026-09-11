@@ -15,19 +15,68 @@ import {
   MessageSquare, 
   ShieldCheck, 
   Pill, 
+  Sparkle,
   Upload, 
   X, 
   RefreshCw, 
   ChevronDown,
   Image as ImageIcon,
-  Clock,
-  Sparkle
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { compressImage } from '../utils/imageCompressor';
 import { Product } from '../types';
 import { PRODUCTS } from '../data/mockData';
+import { SHOP_CONFIG } from '../config/shop';
 import { LogoSvg } from './Logo';
+
+const CATEGORY_SYNONYMS: Record<string, string[]> = {
+  jewelry: ['accessories', 'necklace', 'earrings', 'bracelet', 'bangles', 'chains', 'ring', 'pendant', 'choker', 'matha', 'anklet'],
+  jewellery: ['accessories', 'necklace', 'earrings', 'bracelet', 'bangles', 'chains', 'ring', 'pendant', 'choker', 'matha', 'anklet'],
+  bag: ['bags_backpacks', 'bag', 'backpack'],
+  skincare: ['skincare_beauty', 'skin', 'face', 'cleanser', 'serum', 'moisturizer', 'sunscreen'],
+};
+
+function detectCategory(query: string): string | string[] | undefined {
+  const lower = query.toLowerCase();
+  const categories: string[] = [];
+  if (/\b(accessories|jewelry|jewellery|necklace|earrings|bracelet|bangles|chains|ring|pendant|choker|matha|anklet)\b/.test(lower)) categories.push('accessories');
+  if (/\b(bags?|backpack|handbag)\b/.test(lower)) categories.push('bags_backpacks');
+  if (/\b(skincare|skin|face|cleanser|serum|moisturizer|sunscreen|spf)\b/.test(lower)) categories.push('skincare_beauty');
+  if (categories.length === 0) return undefined;
+  if (categories.length === 1) return categories[0];
+  return categories;
+}
+
+function matchProducts(query: string, aiText: string, limit = 3): Product[] {
+  const detected = detectCategory(query);
+  if (!detected) return [];
+  const categories = Array.isArray(detected) ? detected : [detected];
+  const text = `${query} ${aiText}`.toLowerCase();
+  const tokens = text.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+
+  const expanded = new Set(tokens);
+  for (const token of tokens) {
+    const mapped = CATEGORY_SYNONYMS[token];
+    if (mapped) mapped.forEach((s) => expanded.add(s));
+  }
+
+  const scored = PRODUCTS.map((product) => {
+    if (!categories.includes(product.category)) return { product, score: 0 };
+    const haystack = `${product.name} ${product.tagline} ${product.category} ${product.description}`.toLowerCase();
+    let score = 0;
+    for (const token of expanded) {
+      if (haystack.includes(token)) score++;
+    }
+    return { product, score };
+  });
+
+  return scored
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((item) => item.product);
+}
 
 interface Message {
   id: string;
@@ -118,7 +167,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedModel, setSelectedModel] = useState('Avenue Shopping Assistant 3.6 (Flash)');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -132,7 +180,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     scrollToBottom();
   }, [messages, isLoading]);
 
-  // Adjust textarea height dynamically
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -140,7 +187,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     }
   }, [input]);
 
-  // Load threads from localStorage on mount
   useEffect(() => {
     try {
       const storedThreads = localStorage.getItem(STORAGE_KEY_THREADS);
@@ -181,17 +227,15 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     }
   }, []);
 
-  // Persist threads to localStorage
   const persistThreads = (updatedThreads: ChatThread[], activeId: string) => {
     try {
       localStorage.setItem(STORAGE_KEY_THREADS, JSON.stringify(updatedThreads));
       localStorage.setItem(STORAGE_KEY_ACTIVE, activeId);
     } catch {
-      // localStorage full or unavailable
+      // ignore storage errors
     }
   };
 
-  // Process initial query on load
   useEffect(() => {
     if (initialQuery.trim() && messages.length === 0) {
       const userMsg: Message = {
@@ -212,7 +256,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ complaint: userQuery }),
+        body: JSON.stringify({ message: userQuery }),
       });
 
       const data = await res.json();
@@ -226,8 +270,15 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
           : "I'm having trouble reaching the shopping assistant right now. Please try again shortly.";
       } else {
         aiText = data.reply || data.text || '';
-        const ids: string[] = data.recommended_product_ids || [];
-        recommended = PRODUCTS.filter((p) => ids.includes(p.id));
+        const names: string[] = data.recommended_product_ids || [];
+        recommended = PRODUCTS.filter((p) => names.includes(p.name));
+        if (recommended.length === 0) {
+          recommended = matchProducts(userQuery, aiText, 3);
+        }
+        const firstSentence = aiText.split(/[.!?]+/)[0]?.trim();
+        if (firstSentence && firstSentence.length > 5) {
+          aiText = firstSentence + '.';
+        }
       }
 
       const aiMsg: Message = {
@@ -241,11 +292,10 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
       const updatedMessages = [...currentHistory, aiMsg];
       setMessages(updatedMessages);
       
-      // Update thread messages and persist
       setThreads(prev => {
         const updated = prev.map(t => 
           t.id === activeThreadId 
-            ? { ...t, messages: updatedMessages, date: 'Today' }
+            ? { ...t, messages: updatedMessages }
             : t
         );
         persistThreads(updated, activeThreadId);
@@ -276,7 +326,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     }
   };
 
-  const handleSend = (e?: React.FormEvent, overrideQuery?: string) => {
+  const handleSend = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
     const queryText = overrideQuery ?? input;
     if ((!queryText.trim() && !selectedImageName) || isLoading) return;
@@ -288,7 +338,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     const userMsg: Message = {
       id: Date.now().toString(),
       sender: 'user',
-      text: queryText.trim() || (selectedImageName ? 'Analisis foto kulit' : ''),
+      text: fullText,
       imageName: selectedImageName || undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
@@ -299,7 +349,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     setSelectedImageName(null);
     setSelectedImagePreview(null);
 
-    // Update thread title if this is the first message
     setThreads(prev => {
       const updated = prev.map(t => {
         if (t.id === activeThreadId && t.messages.length === 0) {
@@ -388,7 +437,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex bg-[#FAF9F6] text-[#1A1A1A] font-sans overflow-hidden" data-lenis-prevent>
       
-      {/* Hidden File Upload Input */}
       <input
         type="file"
         ref={fileInputRef}
@@ -397,7 +445,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
         className="hidden"
       />
 
-      {/* Left Sidebar (ChatGPT / Gemini Style) */}
       <AnimatePresence initial={false}>
         {sidebarOpen && (
           <motion.aside
@@ -407,38 +454,25 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className="h-full bg-[#1A1A1A] text-white flex flex-col justify-between border-r border-white/10 shrink-0 relative z-20 overflow-hidden"
           >
-            {/* Top Sidebar Header */}
             <div className="p-4 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={onBackToHome}
-                  className="flex items-center gap-2 text-xs font-medium text-neutral-400 hover:text-white transition-colors cursor-pointer group"
-                >
-                  <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                  <span>Back to Store</span>
-                </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors md:hidden"
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
 
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors md:hidden"
-                >
-                  <PanelLeftClose className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* + New Chat Button */}
-               <button
-                  onClick={handleNewChat}
-                  className="w-full bg-white/10 hover:bg-white/15 border border-white/10 text-white py-2.5 px-3.5 rounded-xl text-xs font-semibold flex items-center justify-start transition-all cursor-pointer shadow-sm group"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Plus className="w-4 h-4 text-neutral-300" />
-                    <span>New Chat</span>
-                  </div>
-                </button>
+              <button
+                onClick={handleNewChat}
+                className="w-full bg-white/10 hover:bg-white/15 border border-white/10 text-white py-2.5 px-3.5 rounded-xl text-xs font-semibold flex items-center justify-start transition-all cursor-pointer shadow-sm group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Plus className="w-4 h-4 text-neutral-300" />
+                  <span>New Chat</span>
+                </div>
+              </button>
             </div>
 
-            {/* Chat History List */}
             <div className="flex-1 overflow-y-auto px-3 py-2 space-y-4 no-scrollbar" data-lenis-prevent>
               <div>
                  <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 px-2 block mb-2">
@@ -462,7 +496,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                 </div>
               </div>
 
-              {/* Quick Actions Shortcuts */}
               <div>
                  <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 px-2 block mb-2">
                    Avenue Quick Actions
@@ -471,7 +504,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                    {QUICK_ACTIONS.map((action, idx) => (
                      <button
                        key={idx}
-                       onClick={() => handlePromptClick(action.query)}
+                       onClick={() => handleQuickActionClick(action.query)}
                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-neutral-300 hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
                      >
                        <action.icon className="w-3.5 h-3.5 text-neutral-400" />
@@ -482,27 +515,23 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
               </div>
             </div>
 
-             {/* Bottom Sidebar User Info */}
-             <div className="p-4 border-t border-white/10 bg-black/20 flex items-center justify-between">
-               <div className="flex items-center gap-2.5">
-                 <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xs font-semibold text-white">
-                   AV
-                 </div>
-                 <div>
-                   <h5 className="text-xs font-medium text-white">Avenue Guest</h5>
-                   <p className="text-[10px] text-neutral-400">Shopping Assistant</p>
-                 </div>
-               </div>
-               <ShieldCheck className="w-4 h-4 text-neutral-400" />
-             </div>
+            <div className="p-4 border-t border-white/10 bg-black/20 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xs font-semibold text-white">
+                  AV
+                </div>
+                <div>
+                  <h5 className="text-xs font-medium text-white">Avenue Guest</h5>
+                  <p className="text-[10px] text-neutral-400">Shopping Assistant</p>
+                </div>
+              </div>
+              <ShieldCheck className="w-4 h-4 text-neutral-400" />
+            </div>
           </motion.aside>
         )}
       </AnimatePresence>
 
-      {/* Main Chat Content Area */}
       <div className="flex-1 flex flex-col h-full bg-[#F4F4F5] relative z-10 min-w-0">
-        
-        {/* Top Navbar */}
         <header className="h-14 px-4 sm:px-6 bg-white border-b border-neutral-200 flex items-center justify-between shrink-0 z-20">
           <div className="flex items-center gap-3">
             {!sidebarOpen && (
@@ -515,7 +544,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
               </button>
             )}
 
-            {/* Logo */}
             <button
               onClick={onBackToHome}
               className="hover:opacity-80 transition-opacity cursor-pointer p-0.5 flex items-center justify-center"
@@ -525,7 +553,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
             </button>
           </div>
 
-          {/* Right Top Bar Controls */}
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenCart}
@@ -537,37 +564,38 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                 <span className="absolute -top-0.5 -right-0.5 bg-[#18181B] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
                   {cartCount}
                 </span>
-               )}
+              )}
             </button>
-            </div>
-          </header>
 
-        {/* Scrollable Chat Area */}
+            <button
+              onClick={onBackToHome}
+              className="hidden sm:flex items-center gap-1.5 text-xs font-semibold bg-[#18181B] hover:bg-neutral-800 text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-sm"
+            >
+              <span>Back to Store</span>
+            </button>
+          </div>
+        </header>
+
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6" data-lenis-prevent>
-          
-          {/* Welcome Screen when Chat is empty */}
           {messages.length === 0 && (
             <div className="max-w-3xl mx-auto min-h-[70vh] flex flex-col justify-center items-center text-center py-10 px-4 space-y-8 animate-fade-in">
                <div className="space-y-3">
-                 <div className="w-14 h-14 rounded-2xl bg-[#18181B] text-white flex items-center justify-center mx-auto shadow-md border border-neutral-700">
-                   <Sparkles className="w-7 h-7" />
-                 </div>
-                 <h2 className="text-2xl sm:text-3xl font-light text-[#18181B] tracking-tight">
-                   Hello, what are you shopping for today?
-                 </h2>
-                 <p className="text-xs sm:text-sm text-neutral-500 max-w-md mx-auto leading-relaxed">
-                   The Avenue Thirty Personal Shopping Assistant can help you discover skincare, bags, jewellery, and more — upload a photo or ask away.
-                 </p>
-               </div>
+                  <div className="w-14 h-14 rounded-2xl bg-[#18181B] text-white flex items-center justify-center mx-auto shadow-md border border-neutral-700">
+                    <Sparkles className="w-7 h-7" />
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-light text-[#18181B] tracking-tight">
+                    Hello, what are you shopping for today?
+                  </h2>
+                  <p className="text-xs sm:text-sm text-neutral-500 max-w-md mx-auto leading-relaxed">
+                    The Avenue Thirty Personal Shopping Assistant can help you discover skincare, bags, jewellery, and more — upload a photo or ask away.
+                  </p>
+                </div>
 
-              {/* Prompt Suggestions Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl text-left">
                 {DEFAULT_PROMPTS.map((p, idx) => (
                   <button
                     key={idx}
-                    onClick={() => {
-                      setInput(p.query);
-                    }}
+                    onClick={() => handlePromptClick(p.query)}
                     className="p-4 bg-white hover:bg-neutral-100/70 border border-neutral-200 hover:border-neutral-400 rounded-2xl transition-all shadow-2xs group cursor-pointer flex flex-col justify-between"
                   >
                     <div>
@@ -584,7 +612,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
             </div>
           )}
 
-          {/* Active Message Thread */}
           {messages.length > 0 && (
             <div className="max-w-3xl mx-auto space-y-6">
               {messages.map((msg) => (
@@ -594,7 +621,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                     msg.sender === 'user' ? 'justify-end' : 'justify-start'
                   }`}
                 >
-                  {/* AI Avatar */}
                   {msg.sender === 'ai' && (
                     <div className="w-8 h-8 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
                       <Bot className="w-4 h-4" />
@@ -602,7 +628,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                   )}
 
                   <div className={`space-y-2 max-w-[88%] sm:max-w-[80%]`}>
-                    {/* Message Bubble */}
                     <div
                       className={`p-4 sm:p-5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${
                         msg.sender === 'user'
@@ -610,7 +635,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                           : 'bg-white text-[#18181B] border border-neutral-200 rounded-tl-xs font-sans'
                       }`}
                     >
-                      {/* Attached Image Preview if User uploaded */}
                       {msg.imageName && (
                         <div className="mb-3 p-2 bg-neutral-100 rounded-xl border border-neutral-200 flex items-center gap-2 text-neutral-800">
                           <ImageIcon className="w-4 h-4 text-neutral-600" />
@@ -618,13 +642,11 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                         </div>
                       )}
 
-                      {/* Text formatted */}
                       <div className="whitespace-pre-line space-y-2">
                         {msg.text}
                       </div>
                     </div>
 
-                    {/* Recommended Products Embed Widget inside AI message */}
                     {msg.recommendedProducts && msg.recommendedProducts.length > 0 && (
                       <div className="pt-2 space-y-3">
                         <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-800 bg-neutral-100 px-3 py-1.5 rounded-xl border border-neutral-200 inline-flex">
@@ -646,11 +668,11 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                                 />
                                 <div className="min-w-0">
                                   <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200">
-                                    {prod.category}
+                                    {prod.tagline || prod.category}
                                   </span>
                                   <h4 className="font-semibold text-xs text-[#18181B] truncate mt-1">{prod.name}</h4>
                                   <p className="text-[11px] font-bold text-[#18181B] mt-0.5">
-                                    ${prod.priceMonthly.toFixed(2)} {prod.category === 'Prescription' ? '/mo' : ''}
+                                    {SHOP_CONFIG.localization.currencySymbol}{prod.priceMonthly.toFixed(2)} {prod.category === 'Prescription' ? '/mo' : ''}
                                   </p>
                                 </div>
                               </div>
@@ -686,7 +708,6 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                     </span>
                   </div>
 
-                  {/* User Avatar */}
                   {msg.sender === 'user' && (
                     <div className="w-8 h-8 rounded-xl bg-neutral-300 text-neutral-800 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
                       <User className="w-4 h-4" />
@@ -694,31 +715,13 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                   )}
                 </div>
               ))}
-
-              {/* AI Thinking / Generating state */}
-              {isLoading && (
-                <div className="flex gap-3 max-w-3xl mx-auto items-center">
-                  <div className="w-8 h-8 rounded-xl bg-[#18181B] text-white flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 animate-spin" />
-                  </div>
-                  <div className="bg-white border border-neutral-200 px-4 py-3 rounded-2xl text-xs text-neutral-600 flex items-center gap-2.5 shadow-2xs">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-neutral-800" />
-                     <span>Avenue AI is analyzing your request and matching products...</span>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
             </div>
           )}
-
         </div>
 
-        {/* Bottom Floating Prompt Input Box */}
         <div className="p-4 sm:p-6 bg-gradient-to-t from-[#F4F4F5] via-[#F4F4F5]/90 to-transparent shrink-0">
           <div className="max-w-3xl mx-auto space-y-2">
             
-            {/* Attached File Preview Badge */}
             {selectedImageName && (
               <div className="inline-flex items-center gap-2 bg-white border border-neutral-300 text-neutral-800 text-xs px-3 py-1.5 rounded-full shadow-2xs animate-fade-in">
                 <Upload className="w-3.5 h-3.5 text-neutral-600" />
@@ -735,70 +738,43 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
               </div>
             )}
 
-            {/* Prompt Card Box */}
-            <form
-              onSubmit={handleSend}
-              className="bg-white border border-neutral-300 focus-within:border-neutral-800 rounded-[24px] p-3 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col justify-between transition-all"
-            >
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
+             <form
+               onSubmit={handleSend}
+               className="bg-white border border-neutral-300 focus-within:border-neutral-800 rounded-[24px] p-3 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col justify-between transition-all"
+             >
+               <textarea
+                 ref={textareaRef}
+                 rows={1}
+                 value={input}
+                 onChange={(e) => setInput(e.target.value)}
+                 onKeyDown={(e) => {
+                   if (e.key === 'Enter' && !e.shiftKey) {
+                     e.preventDefault();
+                     handleSend();
+                   }
+                 }}
                  placeholder="Ask about products, routines, or style matches..."
-                className="w-full bg-transparent text-[#18181B] placeholder:text-neutral-400 text-xs sm:text-sm focus:outline-none resize-none px-2 py-1 max-h-36"
-              />
+                 className="w-full bg-transparent text-[#18181B] placeholder:text-neutral-400 text-xs sm:text-sm focus:outline-none resize-none px-2 py-1 max-h-36"
+               />
 
-              {/* Bottom Action Bar inside Prompt Box */}
-              <div className="flex items-center justify-between pt-2 border-t border-neutral-100 mt-2">
-                {/* Image Upload Button */}
-                <button
-                  type="button"
-                  onClick={handleImageClick}
-                  className="bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-[#18181B] text-xs font-medium px-3.5 py-1.5 rounded-full flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <Camera className="w-3.5 h-3.5 text-neutral-700" />
-                   <span className="hidden sm:inline">Upload Photo</span>
-                </button>
-
-                {/* Right Action Icons: Mic & Send */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handlePromptClick('Consultation via audio and active voice input')}
-                    className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 flex items-center justify-center transition-all cursor-pointer"
-                    title="Audio Mic"
-                  >
-                    <Mic className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={(!input.trim() && !selectedImageName) || isLoading}
-                    className="w-8 h-8 rounded-full bg-[#18181B] hover:bg-neutral-800 disabled:opacity-30 text-white flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
-                    title="Send"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </form>
+               <div className="flex items-center justify-end">
+                   <button
+                     type="submit"
+                     disabled={(!input.trim() && !selectedImageName) || isLoading}
+                     className="w-8 h-8 rounded-full bg-[#18181B] hover:bg-neutral-800 disabled:opacity-30 text-white flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
+                     title="Send"
+                   >
+                     <Send className="w-3.5 h-3.5" />
+                   </button>
+                 </div>
+             </form>
 
               <p className="text-[10px] text-center text-neutral-400">
-               The Avenue Thirty AI provides shopping guidance and product suggestions. For medical concerns, consult a licensed healthcare provider.
-             </p>
-
+                The Avenue Thirty AI provides shopping guidance and product suggestions.
+              </p>
           </div>
         </div>
-
       </div>
-
     </div>
   );
 };

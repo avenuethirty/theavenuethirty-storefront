@@ -1,9 +1,3 @@
-import { Client } from '@hubspot/api-client';
-
-export const hubspotClient = new Client({
-  accessToken: process.env.HUBSPOT_ACCESS_TOKEN || '',
-});
-
 export interface HubspotGuestData {
   name: string;
   phone: string;
@@ -16,41 +10,78 @@ export interface HubspotGuestData {
 
 export async function createHubspotDeal(guestData: HubspotGuestData) {
   try {
+    const token = process.env.HUBSPOT_ACCESS_TOKEN || '';
+    if (!token) {
+      console.error('HubSpot token missing');
+      return { success: false, error: 'Missing HubSpot access token' };
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+
     const nameParts = guestData.name.trim().split(' ');
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    const contactResponse = await hubspotClient.crm.contacts.basicApi.create({
-      properties: {
-        firstname: firstName,
-        lastname: lastName,
-        phone: guestData.phone,
-        email: guestData.email || '',
-        city: guestData.city,
-        address: guestData.address,
-        lifecyclestage: 'customer',
-      },
+    const contactResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        properties: {
+          firstname: firstName,
+          lastname: lastName,
+          phone: guestData.phone,
+          email: guestData.email || '',
+          city: guestData.city,
+          address: guestData.address,
+          lifecyclestage: 'customer',
+        },
+      }),
     });
 
-    const contactId = contactResponse.id;
+    if (!contactResponse.ok) {
+      const text = await contactResponse.text();
+      throw new Error(`HubSpot contact create failed: ${contactResponse.status} ${text}`);
+    }
 
-    const dealResponse = await hubspotClient.crm.deals.basicApi.create({
-      properties: {
-        dealname: `Deal - ${guestData.name} (${guestData.city})`,
-        amount: guestData.totalAmount.toString(),
-        dealstage: 'qualifiedtobuy',
-        pipeline: 'default',
-      },
+    const contactData = await contactResponse.json();
+    const contactId = contactData.id;
+
+    const dealResponse = await fetch('https://api.hubapi.com/crm/v3/objects/deals', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        properties: {
+          dealname: `Deal - ${guestData.name} (${guestData.city})`,
+          amount: guestData.totalAmount.toString(),
+          dealstage: 'qualifiedtobuy',
+          pipeline: 'default',
+        },
+      }),
     });
 
-    const dealId = dealResponse.id;
+    if (!dealResponse.ok) {
+      const text = await dealResponse.text();
+      throw new Error(`HubSpot deal create failed: ${dealResponse.status} ${text}`);
+    }
 
-    await hubspotClient.crm.associations.v4.basicApi.createDefault(
-      'deal',
-      dealId,
-      'contact',
-      contactId
+    const dealData = await dealResponse.json();
+    const dealId = dealData.id;
+
+    const associationResponse = await fetch(
+      `https://api.hubapi.com/crm/v4/objects/deals/${dealId}/associations/default/contacts/${contactId}`,
+      {
+        method: 'PUT',
+        headers,
+      }
     );
+
+    if (!associationResponse.ok) {
+      const text = await associationResponse.text();
+      throw new Error(`HubSpot association failed: ${associationResponse.status} ${text}`);
+    }
 
     return { success: true, contactId, dealId };
   } catch (error: any) {

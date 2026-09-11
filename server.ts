@@ -1,110 +1,195 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
 import express from 'express';
+import { createServer } from 'vite';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
-import Groq from 'groq-sdk';
+import dotenv from 'dotenv';
 import { createHubspotDeal } from './src/server/hubspot';
+
+dotenv.config();
+
+const hubspotToken = process.env.HUBSPOT_ACCESS_TOKEN || '';
+if (!hubspotToken) {
+  console.warn('Missing HUBSPOT_ACCESS_TOKEN in environment');
+} else {
+  const masked = hubspotToken.length > 8 ? `${hubspotToken.slice(0, 4)}...${hubspotToken.slice(-4)}` : '***';
+  console.log(`HubSpot token loaded: ${masked}`);
+}
 
 async function startServer() {
   const app = express();
-  app.use(express.json());
-  const PORT = 3000;
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-  const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY || '',
-  });
+  app.use(express.json());
 
   app.post('/api/chat', async (req, res) => {
     try {
-      const { complaint, chatHistory } = req.body;
-      if (!complaint) {
-        return res.status(400).json({ error: 'Skin complaint parameter is required' });
+      const { message, history } = req.body as { message?: string; history?: Array<{ role: string; content: string }> };
+
+      if (!message || !message.trim()) {
+        return res.status(400).json({ fallback: true, error: 'Empty message' });
       }
 
-      if (!process.env.GROQ_API_KEY) {
-        return res.json({ fallback: true });
+      const apiKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
+
+      if (!apiKey) {
+        return res.status(500).json({ fallback: true, error: 'Missing GROQ_API_KEY' });
       }
 
-      const systemPrompt = `You are The Avenue Thirty's Personal Shopping Assistant.
-Your task is to analyze user messages and uploaded images, understand their intent, and recommend suitable products from The Avenue Thirty's catalog.
+      const result = await runGroqChat(message, history || [], apiKey);
 
-The Avenue Thirty Catalog (use these exact IDs in recommended_product_ids):
-- av30-tea-tree-facewash | "Brighten Me Up Facewash" | $19.99 | Skincare | acne-prone, oily, dull skin
-- av30-spf50 | "SPF 50+ Sunscreen" | $24.00 | Skincare | daily UV protection, sensitive skin, hyperpigmentation
-- av30-glass-skin-bundle | "Flawless Glass Skin Bundle" | $45.00 | Skincare | all skin types, dullness, dehydration
-- av30-dawn-link-bracelet | "Dawn Link Minimal Delicate Bracelet" | $32.00 | Jewellery | everyday wear, gifting, minimal style
-- av30-luna-beige-bag | "Luna Beige Structured Bag" | $65.00 | Bag | work & weekend, minimal style, gifting
-- av30-silky-hair-scrunchie | "Silky Hair Scrunchie Set" | $12.00 | Accessory | hair care, sleep, gifting
+      res.json(result);
+    } catch (err: any) {
+      console.error('Chat endpoint error:', err?.message || err);
+      res.status(500).json({ fallback: true, error: err?.message || 'Unknown error' });
+    }
+  });
+
+  async function runGroqChat(message: string, history: Array<{ role: string; content: string }>, apiKey: string): Promise<{ reply: string; recommended_product_ids: string[]; fallback: boolean }> {
+    const catalog = buildCatalog();
+    const systemPrompt = `You are The Avenue Thirty shopping assistant. You ONLY recommend from the catalog below.
+
+Catalog:
+${catalog}
 
 Rules:
-- If the user uploads a skin or face photo, provide a skin assessment and recommend Skincare products.
-- If the user uploads an outfit or accessory photo, analyze the colors and aesthetic and recommend matching Bags or Jewellery.
-- Always answer in clear, professional English.
-- Be helpful, empathetic, and concise.
-- Explicitly mention which Avenue Thirty product(s) are recommended.
-- Return ONLY valid JSON with these exact keys: reply (string), recommended_product_ids (array of product IDs from the catalog above).
-- Include 1-3 product IDs in recommended_product_ids when relevant. Return [] if no product applies.
-`;
+- Keep replies short: 1-2 sentences max. No long paragraphs or tables.
+- If the user asks about a category, only show products from that category.
+- If the user asks "What jewellery you've got?", reply with 1 sentence and recommend 1-3 matching products.
+- If the user asks about skincare, only recommend skincare products.
+- Never mix categories in one answer.
+- Do NOT mention products that are not in the catalog.
+- Return ONLY valid JSON with these exact keys: reply (string), recommended_product_ids (array of exact product names from the catalog).
+- If unsure, return recommended_product_ids: [].
 
-      const response = await groq.chat.completions.create({
+Examples:
+User: "What jewellery you've got?"
+Assistant: {"reply": "Here are a few pieces from our jewellery collection:", "recommended_product_ids": ["Vector Earrings", "Chic Gold Tone Heart Bracelet", "Personalized Name Necklace - Golden"]}
+
+User: "Show me skincare"
+Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": ["Brighten Me Up Facewash", "SPF 50+ Sunscreen"]}`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
         model: 'openai/gpt-oss-20b',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: complaint },
+          ...history,
+          { role: 'user', content: message },
         ],
-        response_format: { type: 'json_object' },
         temperature: 0.7,
-        max_tokens: 1000,
-      });
+        max_tokens: 256,
+        response_format: { type: 'json_object' },
+      }),
+    });
 
-      const text = response.choices?.[0]?.message?.content || '{}';
-
-      try {
-        const parsed = JSON.parse(text);
-        res.json({
-          reply: parsed.reply || '',
-          recommended_product_ids: parsed.recommended_product_ids || [],
-          fallback: false,
-        });
-      } catch {
-        res.json({ reply: text, recommended_product_ids: [], fallback: false });
-      }
-    } catch (err: any) {
-      console.error('Groq Error:', err?.message, err?.response?.data || '');
-      res.json({ fallback: true, error: err?.message });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Groq API error: ${response.status} ${text}`);
     }
-  });
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Empty Groq response');
+
+    try {
+      const parsed = JSON.parse(content);
+      return {
+        reply: parsed.reply || '',
+        recommended_product_ids: Array.isArray(parsed.recommended_product_ids) ? parsed.recommended_product_ids : [],
+        fallback: false,
+      };
+    } catch {
+      return { reply: content, recommended_product_ids: [], fallback: false };
+    }
+  }
+
+  function buildCatalog(): string {
+    const fs = require('fs');
+    const csvPath = path.join(process.cwd(), 'src/assets/catalogue_csv/accessories_jewellery_100_products.csv');
+    const text = fs.readFileSync(csvPath, 'utf8');
+
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') {
+        if (inQuotes && text[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        row.push(current.trim());
+        current = '';
+      } else if ((char === '\n' || char === '\r') && !inQuotes) {
+        row.push(current.trim());
+        if (row.length > 1 || row[0] !== '') {
+          rows.push(row);
+        }
+        row = [];
+        current = '';
+        if (char === '\r' && text[i + 1] === '\n') {
+          i++;
+        }
+      } else {
+        current += char;
+      }
+    }
+
+    if (current || row.length > 0) {
+      row.push(current.trim());
+      if (row.length > 1 || row[0] !== '') {
+        rows.push(row);
+      }
+    }
+
+    const header = rows[0];
+    const nameIdx = header.indexOf('Name');
+
+    const lines: string[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const name = rows[i][nameIdx] || '';
+      if (name) lines.push(`- ${name}`);
+    }
+
+    return lines.join('\n');
+  }
 
   app.post('/api/checkout', async (req, res) => {
     try {
       const { name, phone, email, city, address, totalAmount, itemsSummary } = req.body;
 
       if (!name || !phone || !city || !address || totalAmount === undefined || !itemsSummary) {
-        return res.status(400).json({ error: 'Missing required checkout fields' });
+        return res.status(400).json({ success: false, error: 'Missing required checkout fields' });
       }
 
-      createHubspotDeal({
+      const result = await createHubspotDeal({
         name,
         phone,
-        email,
+        email: email || '',
         city,
         address,
         totalAmount,
         itemsSummary,
-      }).catch((err) => {
-        console.error('Background HubSpot sync error:', err);
       });
 
-      res.json({ success: true });
+      res.json(result);
     } catch (err: any) {
       console.error('Checkout endpoint error:', err);
-      res.json({ success: true });
+      res.status(500).json({ success: false, error: err?.message || 'Unknown checkout error' });
     }
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
+    const vite = await createServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });

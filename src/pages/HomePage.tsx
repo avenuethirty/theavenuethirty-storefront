@@ -38,9 +38,10 @@ export const HomePage: React.FC<HomePageProps> = ({
         <CtaSection onOpenConsultation={() => onOpenConsultation?.('Prescription product recommendations for my skin')} />
         <TikTokTestimonials
           onAddToCart={(productName, priceStr) => {
-            const numericPrice = parseInt(priceStr.replace(/[^0-9]/g, '')) || 329000;
+            const numericPrice = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
+            const matched = PRODUCTS.find((p) => p.name === productName);
             onAddToCart(
-              {
+              matched || {
                 id: `tiktok-${Date.now()}`,
                 name: productName,
                 tagline: 'Featured in Consumer Video Review',
@@ -49,10 +50,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 rating: 5.0,
                 reviewsCount: 124,
                 description: 'Directly featured formula in consumer TikTok video review',
-                imageUrl: PRODUCTS[0].imageUrl,
+                imageUrl: matched?.imageUrl || PRODUCTS[0].imageUrl,
                 keyIngredients: ['Active Rx Complex', 'Micro-encapsulated Retinal'],
                 bestFor: ['All skin types', 'Barrier repair'],
-              } as Product,
+              },
               'Featured TikTok Formula'
             );
           }}

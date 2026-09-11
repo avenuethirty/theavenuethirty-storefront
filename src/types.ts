@@ -4,8 +4,8 @@ export interface Product {
   category: "clothing_apparel" | "skincare_beauty" | "bags_backpacks" | "accessories" | "toys_kids";
   tagline: string;
   priceMonthly: number;
-  rating: number;
-  reviewsCount: number;
+  rating?: number;
+  reviewsCount?: number;
   imageUrl: string;
   keyIngredients?: string[];
   description: string;
