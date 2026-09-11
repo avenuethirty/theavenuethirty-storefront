@@ -14,6 +14,7 @@ if (!hubspotToken) {
   console.log(`HubSpot token loaded: ${masked}`);
 }
 
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 const GOOGLE_SHEET_CSV_URL = process.env.GOOGLE_SHEET_CSV_URL || 'https://docs.google.com/spreadsheets/d/1LkSL5CL0c80b_6iqVd8FH_uAnm3PwjZv4_Wh_R6xETo/export?format=csv';
 
 const CATEGORY_SLUG_MAP: Record<string, string> = {
@@ -21,6 +22,13 @@ const CATEGORY_SLUG_MAP: Record<string, string> = {
   'accessories & jewellery': 'accessories',
   'bags & backpacks': 'bags_backpacks',
   'toys & kids': 'toys_kids',
+};
+
+const CATEGORY_LABEL_MAP: Record<string, string> = {
+  'skincare_beauty': 'Skincare',
+  'accessories': 'Accessories',
+  'bags_backpacks': 'Bags',
+  'toys_kids': 'Toys',
 };
 
 let catalogueCache: { products: any[]; expiresAt: number } | null = null;
@@ -171,6 +179,53 @@ async function getCatalogue(): Promise<any[]> {
   }
 }
 
+function buildCatalogSnippet(products: any[], limitPerCategory = 10): string {
+  const grouped: Record<string, any[]> = {};
+
+  for (const product of products) {
+    const category = product.category || 'other';
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+    grouped[category].push(product);
+  }
+
+  const lines: string[] = [];
+
+  for (const [category, items] of Object.entries(grouped)) {
+    const label = CATEGORY_LABEL_MAP[category] || category;
+    const sorted = items
+      .slice(0, limitPerCategory)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const names = sorted.map((p) => p.name).filter(Boolean);
+    if (names.length > 0) {
+      lines.push(`${label}: ${names.join(', ')}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function extractChatJson(text: string): { reply: string; recommended_product_ids: string[] } {
+  const trimmed = text.trim();
+
+  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return { reply: trimmed, recommended_product_ids: [] };
+  }
+
+  const jsonStr = jsonMatch[0];
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const reply = typeof parsed.reply === 'string' ? parsed.reply : trimmed;
+    const ids = Array.isArray(parsed.recommended_product_ids) ? parsed.recommended_product_ids : [];
+    return { reply, recommended_product_ids: ids };
+  } catch {
+    return { reply: trimmed, recommended_product_ids: [] };
+  }
+}
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -211,20 +266,22 @@ async function startServer() {
   });
 
   async function runGroqChat(message: string, history: Array<{ role: string; content: string }>, apiKey: string): Promise<{ reply: string; recommended_product_ids: string[]; fallback: boolean }> {
-    const catalog = buildCatalog();
-    const systemPrompt = `You are The Avenue Thirty shopping assistant. You ONLY recommend from the catalog below.
+    const products = await getCatalogue();
+    const catalog = buildCatalogSnippet(products, 10);
+
+    const systemPrompt = `You are The Avenue Thirty shopping assistant. Use the catalog below to answer shopping questions.
 
 Catalog:
 ${catalog}
 
 Rules:
 - Keep replies short: 1-2 sentences max. No long paragraphs or tables.
-- If the user asks about a category, only show products from that category.
+- If the user asks about a category, only recommend products from that category.
 - If the user asks "What jewellery you've got?", reply with 1 sentence and recommend 1-3 matching products.
 - If the user asks about skincare, only recommend skincare products.
 - Never mix categories in one answer.
 - Do NOT mention products that are not in the catalog.
-- Return ONLY valid JSON with these exact keys: reply (string), recommended_product_ids (array of exact product names from the catalog).
+- Return JSON with these keys: reply (string), recommended_product_ids (array of exact product names from the catalog).
 - If unsure, return recommended_product_ids: [].
 
 Examples:
@@ -234,23 +291,24 @@ Assistant: {"reply": "Here are a few pieces from our jewellery collection:", "re
 User: "Show me skincare"
 Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": ["Brighten Me Up Facewash", "SPF 50+ Sunscreen"]}`;
 
+    const body = {
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...history,
+        { role: 'user', content: message },
+      ],
+      temperature: 0.7,
+      max_tokens: 256,
+    };
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-20b',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...history,
-          { role: 'user', content: message },
-        ],
-        temperature: 0.7,
-        max_tokens: 256,
-        response_format: { type: 'json_object' },
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -260,27 +318,43 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
 
     const data = await response.json();
     const content = data?.choices?.[0]?.message?.content;
-    if (!content) throw new Error('Empty Groq response');
 
-    try {
-      const parsed = JSON.parse(content);
+    if (!content || !content.trim()) {
+      const retryResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!retryResponse.ok) {
+        const text = await retryResponse.text();
+        throw new Error(`Groq API error: ${retryResponse.status} ${text}`);
+      }
+
+      const retryData = await retryResponse.json();
+      const retryContent = retryData?.choices?.[0]?.message?.content;
+
+      if (!retryContent || !retryContent.trim()) {
+        throw new Error('Empty Groq response');
+      }
+
+      const { reply, recommended_product_ids } = extractChatJson(retryContent);
       return {
-        reply: parsed.reply || '',
-        recommended_product_ids: Array.isArray(parsed.recommended_product_ids) ? parsed.recommended_product_ids : [],
+        reply: reply || '',
+        recommended_product_ids,
         fallback: false,
       };
-    } catch {
-      return { reply: content, recommended_product_ids: [], fallback: false };
     }
-  }
 
-  async function buildCatalog(): Promise<string> {
-    try {
-      const products = await getCatalogue();
-      return products.map((p) => `- ${p.name}`).join('\n');
-    } catch {
-      return '';
-    }
+    const { reply, recommended_product_ids } = extractChatJson(content);
+    return {
+      reply: reply || '',
+      recommended_product_ids,
+      fallback: false,
+    };
   }
 
   app.post('/api/checkout', async (req, res) => {

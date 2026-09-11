@@ -44,4 +44,8 @@ export const SHOP_CONFIG = {
     x: "https://x.com/theavenuethirty",
     snapchat: "https://snapchat.com/add/theavenuethirty",
   },
+
+  ai: {
+    model: "openai/gpt-oss-20b",
+  },
 } as const;
