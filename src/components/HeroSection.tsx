@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Mic, ArrowUp, Upload } from 'lucide-react';
+import { ArrowUp, Upload } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HeroSectionProps {
@@ -149,37 +149,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
           )}
 
           {/* Bottom Action Bar inside prompt card */}
-          <div className="flex items-center justify-between pt-2 border-t border-black/5 mt-1">
-            {/* Left Button: Analyze Image */}
+          <div className="flex items-center justify-end mt-1">
             <button
               type="button"
-              onClick={handleImageClick}
-              className="bg-neutral-100 hover:bg-neutral-200 border border-black/5 text-[#1A1A1A] text-xs font-semibold px-3.5 py-2 rounded-full flex items-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
+              onClick={() => handleSubmit()}
+              className="w-9 h-9 rounded-full bg-[#525252] hover:bg-[#1A1A1A] text-white flex items-center justify-center shadow transition-all cursor-pointer active:scale-95"
+              title="Send query"
             >
-              <Camera className="w-3.5 h-3.5 text-neutral-700" />
-              <span>Analyze Image</span>
+              <ArrowUp className="w-4 h-4" />
             </button>
-
-            {/* Right Buttons: Voice Mic & Send Arrow */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onStartAiChat('Consultation via active voice recording')}
-                className="w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 text-neutral-700 flex items-center justify-center transition-all cursor-pointer"
-                title="Voice input"
-              >
-                <Mic className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSubmit()}
-                className="w-9 h-9 rounded-full bg-[#525252] hover:bg-[#1A1A1A] text-white flex items-center justify-center shadow transition-all cursor-pointer active:scale-95"
-                title="Send query"
-              >
-                <ArrowUp className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </motion.div>
 

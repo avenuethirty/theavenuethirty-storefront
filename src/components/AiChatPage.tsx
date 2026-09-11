@@ -667,9 +667,9 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                                   className="w-16 h-16 object-cover rounded-xl border border-neutral-200 shrink-0"
                                 />
                                 <div className="min-w-0">
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200">
-                                    {prod.tagline || prod.category}
-                                  </span>
+                                   <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200 truncate inline-block max-w-full align-middle">
+                                     {prod.tagline || prod.category}
+                                   </span>
                                   <h4 className="font-semibold text-xs text-[#18181B] truncate mt-1">{prod.name}</h4>
                                   <p className="text-[11px] font-bold text-[#18181B] mt-0.5">
                                     {SHOP_CONFIG.localization.currencySymbol}{prod.priceMonthly.toFixed(2)} {prod.category === 'Prescription' ? '/mo' : ''}
