@@ -48,7 +48,7 @@ function detectCategory(query: string): string | string[] | undefined {
   return categories;
 }
 
-function matchProducts(query: string, aiText: string, limit = 3): Product[] {
+function matchProducts(query: string, aiText: string, products: Product[], limit = 3): Product[] {
   const detected = detectCategory(query);
   if (!detected) return [];
   const categories = Array.isArray(detected) ? detected : [detected];
@@ -61,7 +61,7 @@ function matchProducts(query: string, aiText: string, limit = 3): Product[] {
     if (mapped) mapped.forEach((s) => expanded.add(s));
   }
 
-  const scored = PRODUCTS.map((product) => {
+  const scored = products.map((product) => {
     if (!categories.includes(product.category)) return { product, score: 0 };
     const haystack = `${product.name} ${product.tagline} ${product.category} ${product.description}`.toLowerCase();
     let score = 0;
@@ -100,6 +100,7 @@ interface AiChatPageProps {
   onAddToCart: (product: Product) => void;
   cartCount: number;
   onOpenCart: () => void;
+  products?: Product[];
 }
 
 const DEFAULT_PROMPTS = [
@@ -157,7 +158,9 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   onAddToCart,
   cartCount,
   onOpenCart,
+  products,
 }) => {
+  const catalogue = products || PRODUCTS;
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -271,9 +274,9 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
       } else {
         aiText = data.reply || data.text || '';
         const names: string[] = data.recommended_product_ids || [];
-        recommended = PRODUCTS.filter((p) => names.includes(p.name));
+        recommended = catalogue.filter((p) => names.includes(p.name));
         if (recommended.length === 0) {
-          recommended = matchProducts(userQuery, aiText, 3);
+          recommended = matchProducts(userQuery, aiText, catalogue, 3);
         }
         const firstSentence = aiText.split(/[.!?]+/)[0]?.trim();
         if (firstSentence && firstSentence.length > 5) {

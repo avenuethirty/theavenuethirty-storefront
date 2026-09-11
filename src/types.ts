@@ -10,6 +10,7 @@ export interface Product {
   keyIngredients?: string[];
   description: string;
   bestFor?: string[];
+  collections?: string[];
 }
 
 export interface IngredientInfo {

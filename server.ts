@@ -14,11 +14,178 @@ if (!hubspotToken) {
   console.log(`HubSpot token loaded: ${masked}`);
 }
 
+const GOOGLE_SHEET_CSV_URL = process.env.GOOGLE_SHEET_CSV_URL || 'https://docs.google.com/spreadsheets/d/1LkSL5CL0c80b_6iqVd8FH_uAnm3PwjZv4_Wh_R6xETo/export?format=csv';
+
+const CATEGORY_SLUG_MAP: Record<string, string> = {
+  'skincare & beauty': 'skincare_beauty',
+  'accessories & jewellery': 'accessories',
+  'bags & backpacks': 'bags_backpacks',
+  'toys & kids': 'toys_kids',
+};
+
+let catalogueCache: { products: any[]; expiresAt: number } | null = null;
+const CATALOGUE_TTL_MS = 10 * 60 * 1000;
+
+function slugifyCategory(raw: string): string {
+  const key = raw.toLowerCase().trim();
+  if (CATEGORY_SLUG_MAP[key]) return CATEGORY_SLUG_MAP[key];
+  return key.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(current.trim());
+      current = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      row.push(current.trim());
+      if (row.length > 1 || row[0] !== '') {
+        rows.push(row);
+      }
+      row = [];
+      current = '';
+      if (char === '\r' && text[i + 1] === '\n') {
+        i++;
+      }
+    } else {
+      current += char;
+    }
+  }
+
+  if (current || row.length > 0) {
+    row.push(current.trim());
+    if (row.length > 1 || row[0] !== '') {
+      rows.push(row);
+    }
+  }
+
+  return rows;
+}
+
+function mapCsvRowToProduct(row: string[], header: string[]): any | null {
+  const get = (name: string) => {
+    const idx = header.indexOf(name);
+    return idx >= 0 ? row[idx] || '' : '';
+  };
+
+  const name = get('Name');
+  const sku = get('SKU');
+  const category = get('Category');
+  const type = get('Type');
+  const unitPrice = get('Unit price');
+  const discountedPrice = get('Discounted Price');
+  const imageUrl = get('Image Url');
+  const description = get('Product description');
+  const collections = get('Collections');
+
+  if (!name) return null;
+
+  const parsePrice = (value: string) => {
+    const cleaned = value.replace(/[^0-9.]/g, '');
+    const num = Number(cleaned);
+    return Number.isFinite(num) ? num : 0;
+  };
+
+  const parsedUnitPrice = parsePrice(unitPrice);
+  const parsedDiscountedPrice = parsePrice(discountedPrice);
+
+  const priceMonthly = parsedDiscountedPrice > 0 ? parsedDiscountedPrice : parsedUnitPrice;
+  const originalPrice = (parsedDiscountedPrice > 0 && parsedDiscountedPrice < parsedUnitPrice) ? parsedUnitPrice : undefined;
+
+  const collectionList = collections
+    .split(/[;,]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  return {
+    id: String(sku || name),
+    name,
+    category: slugifyCategory(category) as any,
+    tagline: type,
+    priceMonthly,
+    originalPrice,
+    imageUrl: imageUrl || '',
+    description: description || name,
+    collections: collectionList.length > 0 ? collectionList : undefined,
+  };
+}
+
+async function fetchCatalogueFromSheet(): Promise<any[]> {
+  const res = await fetch(GOOGLE_SHEET_CSV_URL);
+  if (!res.ok) {
+    throw new Error(`Google Sheets CSV fetch failed: ${res.status}`);
+  }
+  const text = await res.text();
+  const rows = parseCsv(text);
+  if (rows.length < 2) return [];
+
+  const header = rows[0];
+  const products: any[] = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const product = mapCsvRowToProduct(rows[i], header);
+    if (product) products.push(product);
+  }
+
+  return products;
+}
+
+async function getCatalogue(): Promise<any[]> {
+  const now = Date.now();
+  if (catalogueCache && catalogueCache.expiresAt > now) {
+    return catalogueCache.products;
+  }
+
+  try {
+    const sheetProducts = await fetchCatalogueFromSheet();
+    catalogueCache = {
+      products: sheetProducts,
+      expiresAt: now + CATALOGUE_TTL_MS,
+    };
+
+    const refreshTimer = setTimeout(() => {
+      catalogueCache = null;
+      getCatalogue().catch(() => {});
+    }, CATALOGUE_TTL_MS);
+
+    return sheetProducts;
+  } catch (err) {
+    console.error('Catalogue fetch failed, using stale cache if available:', err);
+    if (catalogueCache) {
+      return catalogueCache.products;
+    }
+    return [];
+  }
+}
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
   app.use(express.json());
+
+  app.get('/api/catalogue', async (req, res) => {
+    try {
+      const products = await getCatalogue();
+      res.json({ products, source: 'google-sheets' });
+    } catch (err: any) {
+      console.error('Catalogue endpoint error:', err?.message || err);
+      res.status(500).json({ products: [], error: err?.message || 'Unknown error' });
+    }
+  });
 
   app.post('/api/chat', async (req, res) => {
     try {
@@ -107,60 +274,13 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
     }
   }
 
-  function buildCatalog(): string {
-    const fs = require('fs');
-    const csvPath = path.join(process.cwd(), 'src/assets/catalogue_csv/accessories_jewellery_100_products.csv');
-    const text = fs.readFileSync(csvPath, 'utf8');
-
-    const rows: string[][] = [];
-    let row: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if (char === '"') {
-        if (inQuotes && text[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        row.push(current.trim());
-        current = '';
-      } else if ((char === '\n' || char === '\r') && !inQuotes) {
-        row.push(current.trim());
-        if (row.length > 1 || row[0] !== '') {
-          rows.push(row);
-        }
-        row = [];
-        current = '';
-        if (char === '\r' && text[i + 1] === '\n') {
-          i++;
-        }
-      } else {
-        current += char;
-      }
+  async function buildCatalog(): Promise<string> {
+    try {
+      const products = await getCatalogue();
+      return products.map((p) => `- ${p.name}`).join('\n');
+    } catch {
+      return '';
     }
-
-    if (current || row.length > 0) {
-      row.push(current.trim());
-      if (row.length > 1 || row[0] !== '') {
-        rows.push(row);
-      }
-    }
-
-    const header = rows[0];
-    const nameIdx = header.indexOf('Name');
-
-    const lines: string[] = [];
-    for (let i = 1; i < rows.length; i++) {
-      const name = rows[i][nameIdx] || '';
-      if (name) lines.push(`- ${name}`);
-    }
-
-    return lines.join('\n');
   }
 
   app.post('/api/checkout', async (req, res) => {

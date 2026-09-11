@@ -1,11 +1,13 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { SHOP_CONFIG } from '../config/shop';
 
 interface CtaSectionProps {
   onOpenConsultation?: () => void;
 }
 
 export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenConsultation }) => {
+  const currencySymbol = SHOP_CONFIG.localization.currencySymbol;
   return (
     <section id="cta-section" className="py-12 bg-[#FAFAF9] text-[#1A1A1A] w-full px-[10px]">
       <div 
@@ -20,7 +22,7 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenConsultation }) =>
             Ready to harmonize your skin ritual?
           </h3>
           <p className="text-sm text-white mt-4 max-w-[500px]">
-            Take our 5-minute diagnostic evaluation to unlock your custom medical prescription formula from $19.99/mo.
+            Take our 5-minute diagnostic evaluation to unlock your custom medical prescription formula from {currencySymbol}19.99/mo.
           </p>
 
           {/* Button created under the text */}

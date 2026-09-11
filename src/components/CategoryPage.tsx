@@ -11,6 +11,7 @@ interface CategoryPageProps {
   onOpenConsultation: () => void;
   cartCount: number;
   onOpenCart: () => void;
+  products?: Product[];
 }
 
 export const CategoryPage: React.FC<CategoryPageProps> = ({
@@ -18,6 +19,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   onOpenConsultation,
   cartCount,
   onOpenCart,
+  products,
 }) => {
   const { slug } = useParams<{ slug: string }>();
   const category = slug || '';
@@ -58,6 +60,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
           category={category as any}
           onAddToCart={onAddToCart}
           onOpenConsultation={onOpenConsultation}
+          products={products}
         />
       </main>
     </div>

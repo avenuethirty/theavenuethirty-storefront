@@ -17,9 +17,11 @@ import { FaqPage } from './pages/FaqPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { Product, CartItem } from './types';
 import { PRODUCTS } from './data/mockData';
+import { fetchCatalogue } from './utils/catalogue';
 
 export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [catalogue, setCatalogue] = useState<Product[]>([]);
 
   const [isConsultationOpen, setIsConsultationOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
@@ -30,6 +32,10 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchCatalogue().then((products) => setCatalogue(products));
+  }, []);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -132,10 +138,11 @@ export default function App() {
                   setIsCartOpen(true);
                 }}
                 onOpenConsultation={(query) => handleOpenAiChat(query || 'Prescription product recommendations for my skin')}
+                products={catalogue}
               />
             }
           />
-          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />} />
+          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/faq" element={<FaqPage />} />
@@ -152,6 +159,7 @@ export default function App() {
           onAddToCart={handleAddToCart}
           cartCount={cartCount}
           onOpenCart={() => setIsCartOpen(true)}
+          products={catalogue}
         />
       )}
 

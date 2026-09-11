@@ -23,6 +23,7 @@ export interface WhatsAppPayload {
   storePhone: string;
 }
 
+import { SHOP_CONFIG } from '../config/shop';
 const SELLER_TOKEN = import.meta.env.VITE_CIRCLE_SELLER_TOKEN || "zr8meg5xv3qu";
 const CATALOG_LINK = `https://bajihustler.circlewomen.com/catalogue/${SELLER_TOKEN}`;
 
@@ -36,7 +37,7 @@ export function buildWhatsAppLink({
   const itemLines = items
     .map(
       (item) =>
-        `• ${item.product.name} x${item.quantity} — $${(item.product.priceMonthly * item.quantity).toFixed(2)}`
+        `• ${item.product.name} x${item.quantity} — ${SHOP_CONFIG.localization.currencySymbol}${(item.product.priceMonthly * item.quantity).toFixed(2)}`
     )
     .join("%0A");
 
@@ -47,7 +48,7 @@ export function buildWhatsAppLink({
       "Items:",
       itemLines,
       "",
-      `Total: $${total.toFixed(2)}`,
+      `Total: ${SHOP_CONFIG.localization.currencySymbol}${total.toFixed(2)}`,
       "",
       "Delivery Details:",
       `Name: ${guest.fullName}`,

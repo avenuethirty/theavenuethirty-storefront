@@ -8,19 +8,21 @@ import { AboutUsSection } from '../components/AboutUsSection';
 import { TikTokTestimonials } from '../components/TikTokTestimonials';
 import { DermatologyTeam } from '../components/DermatologyTeam';
 import { Product } from '../types';
-import { PRODUCTS } from '../data/mockData';
 
 interface HomePageProps {
   onStartAiChat: (query?: string) => void;
   onAddToCart: (product: Product) => void;
   onOpenConsultation: (query?: string) => void;
+  products?: Product[];
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
   onStartAiChat,
   onAddToCart,
   onOpenConsultation,
+  products,
 }) => {
+  const catalogue = products || [];
   return (
     <main className="relative w-full">
       <div className="relative w-full">
@@ -33,13 +35,15 @@ export const HomePage: React.FC<HomePageProps> = ({
         <ProductGrid
           onAddToCart={onAddToCart}
           onOpenConsultation={() => onOpenConsultation?.('Prescription product recommendations for my skin')}
+          products={catalogue}
+          collection="Featured"
         />
         <HowItWorks onStartConsultation={() => onOpenConsultation?.('Medical prescription analysis for my skin condition')} />
         <CtaSection onOpenConsultation={() => onOpenConsultation?.('Prescription product recommendations for my skin')} />
         <TikTokTestimonials
           onAddToCart={(productName, priceStr) => {
             const numericPrice = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-            const matched = PRODUCTS.find((p) => p.name === productName);
+            const matched = catalogue.find((p) => p.name === productName);
             onAddToCart(
               matched || {
                 id: `tiktok-${Date.now()}`,
@@ -50,7 +54,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 rating: 5.0,
                 reviewsCount: 124,
                 description: 'Directly featured formula in consumer TikTok video review',
-                imageUrl: matched?.imageUrl || PRODUCTS[0].imageUrl,
+                imageUrl: matched?.imageUrl || catalogue[0]?.imageUrl || '',
                 keyIngredients: ['Active Rx Complex', 'Micro-encapsulated Retinal'],
                 bestFor: ['All skin types', 'Barrier repair'],
               },

@@ -10,16 +10,25 @@ interface ProductGridProps {
   onAddToCart: (product: Product) => void;
   onOpenConsultation: () => void;
   category?: CategoryKey;
+  products?: Product[];
+  collection?: string;
 }
 
-export const ProductGrid: React.FC<ProductGridProps> = ({ onAddToCart, onOpenConsultation, category }) => {
+export const ProductGrid: React.FC<ProductGridProps> = ({ onAddToCart, onOpenConsultation, category, products, collection }) => {
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(0);
 
+  const catalogue = products || PRODUCTS;
   const itemsPerPage = SHOP_CONFIG.catalog.itemsPerPage;
-  const filteredProducts = category
-    ? PRODUCTS.filter((p) => p.category === category)
-    : PRODUCTS;
+  const filteredProducts = catalogue.filter((p) => {
+    if (collection) {
+      return p.collections?.includes(collection);
+    }
+    if (category) {
+      return p.category === category;
+    }
+    return true;
+  });
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const displayedProducts = filteredProducts.slice(
@@ -42,7 +51,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ onAddToCart, onOpenCon
   };
 
   return (
-    <section id="products" className="py-16 md:py-24 bg-[#FAFAF9] text-[#1A1A1A] w-full">
+    <section id="Featured-Section" className="py-16 md:py-24 bg-[#FAFAF9] text-[#1A1A1A] w-full">
       <div className="w-full px-[10px]">
         
         {/* Header Paragraph with matching About Us typography */}
@@ -122,7 +131,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ onAddToCart, onOpenCon
                     {product.name}
                   </h3>
                   <span className="text-xs font-sans text-[#666666] tracking-wider uppercase mt-1">
-                    FROM ${product.priceMonthly.toFixed(2)}
+                    {product.originalPrice ? (
+                      <>
+                        <span className="line-through opacity-70">{SHOP_CONFIG.localization.currencySymbol}{product.originalPrice.toFixed(2)}</span>
+                        <span className="ml-2 font-semibold text-[#1A1A1A]">{SHOP_CONFIG.localization.currencySymbol}{product.priceMonthly.toFixed(2)}</span>
+                      </>
+                    ) : (
+                      <>{SHOP_CONFIG.localization.currencySymbol}{product.priceMonthly.toFixed(2)}</>
+                    )}
                   </span>
                 </div>
               </div>
