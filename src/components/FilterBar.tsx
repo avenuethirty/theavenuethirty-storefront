@@ -6,10 +6,11 @@ import { SHOP_CONFIG } from "../config/shop";
 const { plp } = SHOP_CONFIG;
 
 const SORT_LABELS: Record<string, string> = {
-  recommended: "Recommended",
-  "price-asc": "Price: Low to High",
-  "price-desc": "Price: High to Low",
-  newest: "Newest",
+  recommended: "Relevance",
+  "price-asc": "Lowest Price",
+  "price-desc": "Highest Price",
+  discount: "Discount",
+  newest: "New Arrivals",
 };
 
 const PRICE_LABELS: Record<number, string> = {

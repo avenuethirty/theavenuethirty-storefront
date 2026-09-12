@@ -1,6 +1,6 @@
 import { Product } from "../types";
 
-export type SortValue = "recommended" | "price-asc" | "price-desc" | "newest";
+export type SortValue = "recommended" | "price-asc" | "price-desc" | "discount" | "newest";
 
 export interface FilterParams {
   sort?: string;
@@ -16,7 +16,7 @@ export interface FilterState {
 
 export function parseFilterParams(searchParams: URLSearchParams): FilterState {
   const sortParam = searchParams.get("sort") || "";
-  const validSorts: SortValue[] = ["recommended", "price-asc", "price-desc", "newest"];
+  const validSorts: SortValue[] = ["recommended", "price-asc", "price-desc", "discount", "newest"];
   const sort = validSorts.includes(sortParam as SortValue)
     ? (sortParam as SortValue)
     : "recommended";
@@ -55,6 +55,17 @@ export function useFilteredProducts(products: Product[], params: FilterState) {
         return a.priceMonthly - b.priceMonthly;
       case "price-desc":
         return b.priceMonthly - a.priceMonthly;
+      case "discount": {
+        const aDiscount =
+          a.originalPrice && a.originalPrice > a.priceMonthly
+            ? (a.originalPrice - a.priceMonthly) / a.originalPrice
+            : 0;
+        const bDiscount =
+          b.originalPrice && b.originalPrice > b.priceMonthly
+            ? (b.originalPrice - b.priceMonthly) / b.originalPrice
+            : 0;
+        return bDiscount - aDiscount;
+      }
       case "newest":
       case "recommended":
       default:
