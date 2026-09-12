@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import { Sparkles, ShoppingBag, Menu } from "lucide-react";
 import { LogoSvg } from "./Logo";
 import { SHOP_CONFIG } from "../config/shop";
@@ -22,6 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMenu,
 }) => {
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const { pathname } = useLocation();
+  const isHome = pathname === "/";
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -43,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       id="main-header"
-      className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-12 pointer-events-none transition-all duration-300 ${textColorClass} ${isScrolled ? 'glass-header' : ''}`}
+      className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-12 pointer-events-none transition-all duration-300 ${textColorClass} ${!isHome && !isScrolled ? 'bg-[#1A1A1A]' : ''} ${isScrolled ? 'glass-header' : ''}`}
     >
       <div className="w-full pointer-events-auto py-2">
         {/* Mobile Header */}
