@@ -415,4 +415,3 @@ if (isMain) {
 }
 
 export { createApp };
-export default createApp;
