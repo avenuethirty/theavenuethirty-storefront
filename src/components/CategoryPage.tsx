@@ -4,9 +4,8 @@ import { Header } from './Header';
 import { PLPGrid } from './PLPGrid';
 import { Breadcrumbs } from './Breadcrumbs';
 import { FilterBar } from './FilterBar';
-import { CATEGORIES, getCategoryLabel } from '../utils/category';
-import { ArrowLeft } from 'lucide-react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { getCategoryLabel } from '../utils/category';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { parseFilterParams, useFilteredProducts } from '../hooks/useFilteredProducts';
 import { SHOP_CONFIG } from '../config/shop';
 
@@ -28,7 +27,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   const { slug } = useParams<{ slug: string }>();
   const category = slug || '';
   const label = getCategoryLabel(category);
-  const categoryInfo = CATEGORIES.find((c) => c.key === category);
 
   const [searchParams] = useSearchParams();
   const filterParams = parseFilterParams(searchParams);
@@ -47,27 +45,14 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
 
       <main className="pt-24">
         <div className="max-w-7xl mx-auto px-6 mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors cursor-pointer mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Store</span>
-          </Link>
-
           {SHOP_CONFIG.plp.showBreadcrumbs && (
             <Breadcrumbs category={category} />
           )}
 
-          <div className="space-y-2 mb-6">
+          <div className="mb-6">
             <h1 className="text-3xl md:text-4xl font-light text-[#1A1A1A] tracking-tight">
               {label}
             </h1>
-            {categoryInfo && (
-              <p className="text-xs text-neutral-500">
-                {categoryInfo.subCategories.length} sub-categories available
-              </p>
-            )}
           </div>
 
           {SHOP_CONFIG.plp.showProductCount && (
