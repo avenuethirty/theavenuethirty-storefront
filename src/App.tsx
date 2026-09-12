@@ -4,7 +4,6 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { AiChatPage } from './components/AiChatPage';
 import { CartDrawer } from './components/CartDrawer';
-import { SignInModal } from './components/SignInModal';
 import { NavigationMenuDrawer } from './components/NavigationMenuDrawer';
 import { ConsultationQuizModal } from './components/ConsultationQuizModal';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +14,7 @@ import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { FaqPage } from './pages/FaqPage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { SellPage } from './pages/SellPage';
 import { Product, CartItem } from './types';
 import { PRODUCTS } from './data/mockData';
 import { fetchCatalogue } from './utils/catalogue';
@@ -27,8 +27,6 @@ export default function App() {
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [aiChatQuery, setAiChatQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -118,9 +116,7 @@ export default function App() {
       {!isAiChatOpen && (
         <Header
           cartCount={cartCount}
-          isSignedIn={isSignedIn}
           onOpenCart={() => setIsCartOpen(true)}
-          onOpenSignIn={() => setIsSignInOpen(true)}
           onOpenConsultation={() => handleOpenAiChat()}
           onOpenMenu={() => setIsMenuOpen(true)}
         />
@@ -147,6 +143,7 @@ export default function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/sell" element={<SellPage />} />
         </Routes>
       </main>
 
@@ -175,12 +172,6 @@ export default function App() {
         cartItems={cartItems}
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
-      />
-
-      <SignInModal
-        isOpen={isSignInOpen}
-        onClose={() => setIsSignInOpen(false)}
-        onSignInSuccess={() => setIsSignedIn(true)}
       />
 
       <NavigationMenuDrawer

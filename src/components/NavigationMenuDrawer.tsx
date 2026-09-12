@@ -71,6 +71,14 @@ export const NavigationMenuDrawer: React.FC<NavigationMenuDrawerProps> = ({
             <span>Chat with Shopping Assistant</span>
           </button>
 
+          <Link
+            to="/sell"
+            onClick={onClose}
+            className="block w-full text-center border border-white/30 text-white hover:bg-white/10 font-semibold text-xs uppercase tracking-widest py-4 rounded-full transition-all"
+          >
+            Sell With Us
+          </Link>
+
           <p className="text-[10px] uppercase tracking-widest text-center text-white/50 font-medium">
             The Avenue Thirty — Curated for You
           </p>

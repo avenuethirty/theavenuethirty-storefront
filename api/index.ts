@@ -390,6 +390,87 @@ async function createHubspotDeal(guestData: { name: string; phone: string; email
   }
 }
 
+async function createSellerLead(lead: { brandName: string; contactName: string; phone: string; email?: string; category: string; message?: string }) {
+  try {
+    const token = process.env.HUBSPOT_ACCESS_TOKEN || '';
+    if (!token) {
+      console.error('HubSpot token missing');
+      return { success: false, error: 'Missing HubSpot access token' };
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+
+    const nameParts = lead.contactName.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const contactResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        properties: {
+          firstname: firstName,
+          lastname: lastName,
+          phone: lead.phone,
+          email: lead.email || '',
+          lifecyclestage: 'lead',
+        },
+      }),
+    });
+
+    if (!contactResponse.ok) {
+      const text = await contactResponse.text();
+      throw new Error(`HubSpot contact create failed: ${contactResponse.status} ${text}`);
+    }
+
+    const contactData = await contactResponse.json();
+    const contactId = contactData.id;
+
+    const dealResponse = await fetch('https://api.hubapi.com/crm/v3/objects/deals', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        properties: {
+          dealname: `Seller Lead — ${lead.brandName} (${lead.category})`,
+          amount: '0',
+          dealstage: 'qualifiedtobuy',
+          pipeline: 'default',
+          description: lead.message || '',
+        },
+      }),
+    });
+
+    if (!dealResponse.ok) {
+      const text = await dealResponse.text();
+      throw new Error(`HubSpot deal create failed: ${dealResponse.status} ${text}`);
+    }
+
+    const dealData = await dealResponse.json();
+    const dealId = dealData.id;
+
+    const associationResponse = await fetch(
+      `https://api.hubapi.com/crm/v4/objects/deals/${dealId}/associations/default/contacts/${contactId}`,
+      {
+        method: 'PUT',
+        headers,
+      }
+    );
+
+    if (!associationResponse.ok) {
+      const text = await associationResponse.text();
+      throw new Error(`HubSpot association failed: ${associationResponse.status} ${text}`);
+    }
+
+    return { success: true, contactId, dealId };
+  } catch (error: any) {
+    console.error('HubSpot Seller Lead Error:', error);
+    return { success: false, error: error?.message || 'Unknown HubSpot error' };
+  }
+}
+
 const app = express();
 
 app.use(express.json());
@@ -449,6 +530,30 @@ app.post('/api/checkout', async (req, res) => {
   } catch (err: any) {
     console.error('Checkout endpoint error:', err);
     res.status(500).json({ success: false, error: err?.message || 'Unknown checkout error' });
+  }
+});
+
+app.post('/api/sell', async (req, res) => {
+  try {
+    const { brandName, contactName, phone, email, category, message } = req.body;
+
+    if (!brandName || !contactName || !phone || !category) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const result = await createSellerLead({
+      brandName,
+      contactName,
+      phone,
+      email: email || '',
+      category,
+      message: message || '',
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    console.error('Sell endpoint error:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Unknown sell error' });
   }
 });
 

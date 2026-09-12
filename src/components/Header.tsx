@@ -7,18 +7,14 @@ import { Link } from "react-router-dom";
 
 interface HeaderProps {
   cartCount: number;
-  isSignedIn?: boolean;
   onOpenCart: () => void;
-  onOpenSignIn: () => void;
   onOpenConsultation: () => void;
   onOpenMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   cartCount,
-  isSignedIn = false,
   onOpenCart,
-  onOpenSignIn,
   onOpenConsultation,
   onOpenMenu,
 }) => {
@@ -134,23 +130,12 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
 
           <div className="flex items-center justify-end gap-5 md:gap-6 shrink-0">
-            {!isSignedIn ? (
-              <button
-                id="header-signup-btn"
-                onClick={onOpenSignIn}
-                className="text-sm font-medium hover:opacity-75 transition-opacity cursor-pointer"
-              >
-                Sign Up
-              </button>
-            ) : (
-              <button
-                id="header-account-btn"
-                onClick={onOpenSignIn}
-                className="text-sm font-medium hover:opacity-75 transition-opacity cursor-pointer"
-              >
-                Account
-              </button>
-            )}
+            <Link
+              to="/sell"
+              className="text-sm font-medium hover:opacity-75 transition-opacity cursor-pointer"
+            >
+              Sell
+            </Link>
             <button
               id="header-cart-btn"
               onClick={onOpenCart}

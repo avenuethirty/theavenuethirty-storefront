@@ -22,8 +22,8 @@ No test runner, no test files, no CI config (no `.github/` workflows).
 ## Entry points & architecture
 
 - **Client**: `src/main.tsx` → `src/App.tsx`. `App.tsx` holds all global state (cart, modals, chat, catalogue).
-- **Server**: `server.ts` (repo root) — Express app with `/api/catalogue`, `/api/chat`, `/api/checkout`. `src/server/hubspot.ts` is only the HubSpot API module called by `server.ts`.
-- **Routing** (BrowserRouter): `/`, `/product/:slug`, `/about`, `/contact`, `/faq`, `/privacy`. No `/category/*` route.
+- **Server**: `server.ts` (repo root) — Express app with `/api/catalogue`, `/api/chat`, `/api/checkout`, `/api/sell`. `src/server/hubspot.ts` is only the HubSpot API module called by `server.ts`.
+- **Routing** (BrowserRouter): `/`, `/product/:slug`, `/about`, `/contact`, `/faq`, `/privacy`, `/sell`. No `/category/*` route. No accounts/auth — the Sign Up flow was removed; `/sell` is a seller lead landing page (header "Sell" link).
 - **Components**: `src/components/` | **Pages**: `src/pages/` | **Types**: `src/types.ts` | **Config**: `src/config/shop.ts` | **Data**: `src/data/mockData.ts` | **Server modules**: `src/server/`
 
 ## Category taxonomy

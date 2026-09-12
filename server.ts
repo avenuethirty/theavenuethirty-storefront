@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'vite';
 import path from 'path';
 import dotenv from 'dotenv';
-import { createHubspotDeal } from './src/server/hubspot';
+import { createHubspotDeal, createSellerLead } from './src/server/hubspot';
 import { SHOP_CONFIG } from './src/config/shop';
 
 dotenv.config();
@@ -382,6 +382,30 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
     } catch (err: any) {
       console.error('Checkout endpoint error:', err);
       res.status(500).json({ success: false, error: err?.message || 'Unknown checkout error' });
+    }
+  });
+
+  app.post('/api/sell', async (req, res) => {
+    try {
+      const { brandName, contactName, phone, email, category, message } = req.body;
+
+      if (!brandName || !contactName || !phone || !category) {
+        return res.status(400).json({ success: false, error: 'Missing required fields' });
+      }
+
+      const result = await createSellerLead({
+        brandName,
+        contactName,
+        phone,
+        email: email || '',
+        category,
+        message: message || '',
+      });
+
+      res.json(result);
+    } catch (err: any) {
+      console.error('Sell endpoint error:', err);
+      res.status(500).json({ success: false, error: err?.message || 'Unknown sell error' });
     }
   });
 
