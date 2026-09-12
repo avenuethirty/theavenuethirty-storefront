@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "include": [
+        "server.ts"
+      ]
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
