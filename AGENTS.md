@@ -65,8 +65,20 @@ Defined in `src/utils/category.ts` — 5 HubSpot-aligned keys: `clothing_apparel
 ## Vercel deployment
 
 - Vercel does not support a long-running Express process. Instead, `server.ts` is wrapped as a single serverless function via `api/index.ts`.
-- `vercel.json` rewrites `/api/*` to `api/index.ts` and all other routes to `/index.html` (SPA entry). `api/index.ts` imports the Express app from `./server` (co-located `api/server.ts` re-export), which re-exports from root `server.ts`.
-- `server.ts` exports `createApp()` (returns the Express app). The `app.listen()` call is guarded by an ESM main-module check so it does not fire when imported by Vercel's runtime.
+- `vercel.json` rewrites `/api/*` to `api/index.ts` and all other routes to `/index.html` (SPA entry). `api/index.ts` is a self-contained Express app (all logic inlined — no imports from root `server.ts`) to ensure Vercel's `@vercel/node` builder includes all code in the function package.
+- `server.ts` exports `createApp()` (returns the Express app). The `app.listen()` call is guarded by an ESM main-module check so it does not fire when imported by Vercel's runtime. `server.ts` is used only for local development (`npm run dev`).
 - Local dev (`npm run dev`) is unaffected — it still runs `tsx server.ts` directly.
 - Vercel Dashboard env vars must include: `GROQ_API_KEY`, `HUBSPOT_ACCESS_TOKEN`, `GOOGLE_SHEET_CSV_URL`. Do not set removed `VITE_CIRCLE_*` vars.
 - Trade-off: the in-memory catalogue cache is lost on serverless cold starts. First request after idle refetches the Google Sheet (~1–2s).
+
+## Operational modes
+
+The agent operates in one of three modes. Respect the current mode at all times:
+
+- **Ask mode** — read-only. Answer questions, analyze, suggest plans. Do NOT write code, modify files, or run mutating commands (git push, commit, write, edit).
+- **Plan mode** — analyze and draft plans. Write plan files when instructed. Do NOT write code, modify source files, or push.
+- **Code mode** — full implementation. Write code, edit files, run commands, commit. **Only push to git when explicitly asked.**
+
+If the user says "proceed" or "implement" while in Ask or Plan mode, switch to Code mode first, then act.
+If the user says "stop coding" or "don't code", switch back to Ask or Plan mode immediately.
+Never push to git (`git push`, `npm run deploy`, etc.) unless the user explicitly requests it. `git commit` is OK if the user asked for it; `git push` always requires explicit request.

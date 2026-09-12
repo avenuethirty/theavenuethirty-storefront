@@ -1,10 +1,14 @@
 import React from 'react';
 import { Product } from '../types';
 import { Header } from './Header';
-import { ProductGrid } from './ProductGrid';
+import { PLPGrid } from './PLPGrid';
+import { Breadcrumbs } from './Breadcrumbs';
+import { FilterBar } from './FilterBar';
 import { CATEGORIES, getCategoryLabel } from '../utils/category';
-import { ArrowLeft, Sparkles } from 'lucide-react';
-import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { parseFilterParams, useFilteredProducts } from '../hooks/useFilteredProducts';
+import { SHOP_CONFIG } from '../config/shop';
 
 interface CategoryPageProps {
   onAddToCart: (product: Product) => void;
@@ -26,6 +30,13 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   const label = getCategoryLabel(category);
   const categoryInfo = CATEGORIES.find((c) => c.key === category);
 
+  const [searchParams] = useSearchParams();
+  const filterParams = parseFilterParams(searchParams);
+
+  const catalogue = products || [];
+  const categoryProducts = catalogue.filter((p) => p.category === category);
+  const { filtered } = useFilteredProducts(categoryProducts, filterParams);
+
   return (
     <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
       <Header
@@ -44,7 +55,11 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
             <span>Back to Store</span>
           </Link>
 
-          <div className="space-y-2">
+          {SHOP_CONFIG.plp.showBreadcrumbs && (
+            <Breadcrumbs category={category} />
+          )}
+
+          <div className="space-y-2 mb-6">
             <h1 className="text-3xl md:text-4xl font-light text-[#1A1A1A] tracking-tight">
               {label}
             </h1>
@@ -54,14 +69,19 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
               </p>
             )}
           </div>
+
+          {SHOP_CONFIG.plp.showProductCount && (
+            <FilterBar totalProducts={filtered.length} />
+          )}
         </div>
 
-        <ProductGrid
-          category={category as any}
-          onAddToCart={onAddToCart}
-          onOpenConsultation={onOpenConsultation}
-          products={products}
-        />
+        <div className="max-w-7xl mx-auto px-6">
+          <PLPGrid
+            products={filtered}
+            onAddToCart={onAddToCart}
+            onOpenConsultation={onOpenConsultation}
+          />
+        </div>
       </main>
     </div>
   );

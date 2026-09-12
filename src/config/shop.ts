@@ -48,4 +48,23 @@ export const SHOP_CONFIG = {
   ai: {
     model: "openai/gpt-oss-20b",
   },
+
+  plp: {
+    itemsPerPage: 12,
+    gridColumns: { mobile: 2, tablet: 3, desktop: 4 },
+    showBreadcrumbs: true,
+    showProductCount: true,
+    filters: {
+      categories: ["category", "priceRange", "rating"],
+      priceRangeSteps: [100, 500, 1000, 2000, 5000],
+      ratingOptions: [4, 3, 2, 1],
+    },
+    sortOptions: [
+      { value: "recommended", label: "Recommended" },
+      { value: "price-asc", label: "Price: Low to High" },
+      { value: "price-desc", label: "Price: High to Low" },
+      { value: "newest", label: "Newest" },
+    ],
+    defaultSort: "recommended",
+  },
 } as const;
