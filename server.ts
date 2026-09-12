@@ -99,8 +99,11 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   const imageUrl = get('Image Url');
   const description = get('Product description');
   const collections = get('Collections');
+  const status = get('Status');
 
   if (!name) return null;
+
+  if (status.toLowerCase() !== 'active') return null;
 
   const parsePrice = (value: string) => {
     const cleaned = value.replace(/[^0-9.]/g, '');
@@ -227,9 +230,8 @@ function extractChatJson(text: string): { reply: string; recommended_product_ids
   }
 }
 
-async function startServer() {
+async function createApp() {
   const app = express();
-  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
   app.use(express.json());
 
@@ -397,9 +399,19 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  return app;
+}
+
+const entryScript = process.argv[1] || '';
+const isMain = entryScript.endsWith('server.ts') || entryScript.endsWith('server.js');
+
+if (isMain) {
+  createApp().then((app) => {
+    const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
   });
 }
 
-startServer();
+export { createApp };

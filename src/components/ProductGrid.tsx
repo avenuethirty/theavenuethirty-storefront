@@ -4,7 +4,7 @@ import { CategoryKey } from '../utils/category';
 import { PRODUCTS } from '../data/mockData';
 import { SHOP_CONFIG } from '../config/shop';
 import { Check, Plus, Sparkles } from 'lucide-react';
-import { ScrollTextReveal } from './ScrollTextReveal';
+import { ScrollTextReveal } from "./ScrollTextReveal";
 
 interface ProductGridProps {
   onAddToCart: (product: Product) => void;

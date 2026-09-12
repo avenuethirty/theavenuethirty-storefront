@@ -24,8 +24,6 @@ export interface WhatsAppPayload {
 }
 
 import { SHOP_CONFIG } from '../config/shop';
-const SELLER_TOKEN = import.meta.env.VITE_CIRCLE_SELLER_TOKEN || "zr8meg5xv3qu";
-const CATALOG_LINK = `https://bajihustler.circlewomen.com/catalogue/${SELLER_TOKEN}`;
 
 export function buildWhatsAppLink({
   orderId,
@@ -55,8 +53,6 @@ export function buildWhatsAppLink({
       `Phone: ${guest.phone}`,
       `Address: ${guest.address}, ${guest.city}`,
       guest.notes ? `Notes: ${guest.notes}` : "",
-      "",
-      `Shop this catalog: ${CATALOG_LINK}`,
       "",
       "Please confirm availability and delivery timeline. Thank you!",
     ]
