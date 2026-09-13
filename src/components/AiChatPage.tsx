@@ -170,7 +170,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -394,6 +394,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     setInput('');
     setSelectedImageName(null);
     setSelectedImagePreview(null);
+    setSidebarOpen(false);
   };
 
   const handleDeleteThread = (threadId: string) => {
@@ -427,6 +428,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
 
   const handleQuickActionClick = (query: string) => {
     handleSend(undefined, query);
+    setSidebarOpen(false);
   };
 
   const handleThreadSwitch = (threadId: string) => {
