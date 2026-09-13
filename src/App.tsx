@@ -67,7 +67,7 @@ export default function App() {
   }, [pathname]);
 
   const handleOpenAiChat = (query?: string) => {
-    navigate('/chat', { state: { initialQuery: query || '' } });
+    navigate('/ai-shopping', { state: { initialQuery: query || '' } });
   };
 
   const handleAddToCart = (product: Product, customFormulaName?: string) => {
@@ -136,7 +136,7 @@ export default function App() {
             }
           />
           <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} />} />
-          <Route path="/chat" element={<AiChatPage onAddToCart={handleAddToCart} products={catalogue} />} />
+          <Route path="/ai-shopping" element={<AiChatPage onAddToCart={handleAddToCart} products={catalogue} />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage onOpenConsultation={(query) => handleOpenAiChat(query)} />} />
           <Route path="/faq" element={<FaqPage />} />

@@ -474,7 +474,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   };
 
   return (
-    <div className="relative flex h-screen pt-[68px] bg-[#FAF9F6] text-[#1A1A1A] font-sans overflow-hidden" data-lenis-prevent>
+    <div className="relative flex h-screen pt-[52px] bg-[#FAF9F6] text-[#1A1A1A] font-sans overflow-hidden" data-lenis-prevent>
       
       <input
         type="file"
