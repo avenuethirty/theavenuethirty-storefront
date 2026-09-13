@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, Plus, Minus, ArrowRight, Check, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { CartItem, GuestDetails } from '../types';
 import { buildWhatsAppLink } from '../utils/whatsapp';
 import { SHOP_CONFIG } from '../config/shop';
@@ -67,8 +68,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.product.priceMonthly * item.quantity,
     0
@@ -133,8 +132,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm animate-fade-in flex justify-end">
-      <div className="relative w-full max-w-md bg-white text-[#111110] h-full shadow-2xl flex flex-col">
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="relative w-full max-w-md bg-white text-[#111110] h-full shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
         {/* Drawer Header */}
         <div className="px-6 py-5 border-b border-black/5 flex items-center justify-between bg-[#FAFAF9]">
           <div className="flex items-center gap-2">
@@ -381,7 +396,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             </div>
           </div>
         )}
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

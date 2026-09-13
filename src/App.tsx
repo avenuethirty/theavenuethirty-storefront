@@ -34,6 +34,13 @@ export default function App() {
     fetchCatalogue().then((products) => setCatalogue(products));
   }, []);
 
+  // Close the AI chat overlay whenever the route changes (navbar link, logo,
+  // category link) so the page behind is what the user navigated to.
+  useEffect(() => {
+    if (isAiChatOpen) setIsAiChatOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.2,
@@ -127,14 +134,14 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
-      {!isAiChatOpen && (
-        <Header
-          cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
-          onOpenConsultation={() => handleOpenAiChat()}
-          onOpenMenu={() => setIsMenuOpen(true)}
-        />
-      )}
+      <Header
+        cartCount={cartCount}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenConsultation={() => handleOpenAiChat()}
+        onOpenMenu={() => setIsMenuOpen(true)}
+        isAiChatOpen={isAiChatOpen}
+        onToggleAiChat={() => setIsAiChatOpen((v) => !v)}
+      />
 
       <main>
         <Routes>
@@ -165,7 +172,7 @@ export default function App() {
       {isAiChatOpen && (
         <AiChatPage
           initialQuery={aiChatQuery}
-          onBackToHome={() => setIsAiChatOpen(false)}
+          onCloseChat={() => setIsAiChatOpen(false)}
           onAddToCart={handleAddToCart}
           cartCount={cartCount}
           onOpenCart={() => setIsCartOpen(true)}

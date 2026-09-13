@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Sparkles, 
-  ArrowLeft, 
-  Plus, 
+import {
+  Sparkles,
+  Plus,
   Send, 
   Camera, 
   Mic, 
@@ -30,7 +29,6 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Product } from '../types';
 import { PRODUCTS } from '../data/mockData';
 import { SHOP_CONFIG } from '../config/shop';
-import { LogoSvg } from './Logo';
 
 const CATEGORY_SYNONYMS: Record<string, string[]> = {
   jewelry: ['accessories', 'necklace', 'earrings', 'bracelet', 'bangles', 'chains', 'ring', 'pendant', 'choker', 'matha', 'anklet'],
@@ -98,7 +96,7 @@ interface ChatThread {
 
 interface AiChatPageProps {
   initialQuery?: string;
-  onBackToHome: () => void;
+  onCloseChat: () => void;
   onAddToCart: (product: Product) => void;
   cartCount: number;
   onOpenCart: () => void;
@@ -156,7 +154,7 @@ const STORAGE_KEY_ACTIVE = 'av30-chat-active-thread';
 
 export const AiChatPage: React.FC<AiChatPageProps> = ({
   initialQuery = '',
-  onBackToHome,
+  onCloseChat,
   onAddToCart,
   cartCount,
   onOpenCart,
@@ -476,7 +474,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-[#FAF9F6] text-[#1A1A1A] font-sans overflow-hidden" data-lenis-prevent>
+    <div className="fixed inset-0 z-40 flex flex-col bg-[#FAF9F6] text-[#1A1A1A] font-sans overflow-hidden pt-[68px]" data-lenis-prevent>
       
       <input
         type="file"
@@ -602,48 +600,28 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col h-full bg-[#F4F4F5] relative z-10 min-w-0">
-        <header className="h-14 px-4 sm:px-6 bg-white border-b border-neutral-200 flex items-center justify-between shrink-0 z-20">
-          <div className="flex items-center gap-3">
-            {!sidebarOpen && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
-                title="Open Sidebar"
-              >
-                <PanelLeft className="w-5 h-5" />
-              </button>
-            )}
-
-            <button
-              onClick={onBackToHome}
-              className="hover:opacity-80 transition-opacity cursor-pointer p-0.5 flex items-center justify-center"
-              aria-label="Home"
-            >
-               <LogoSvg fill="#18181B" className="h-[18px] w-auto" />
-            </button>
-          </div>
-
+        <header className="h-12 px-4 sm:px-6 bg-white border-b border-neutral-200 flex items-center justify-between shrink-0 z-20">
           <div className="flex items-center gap-3">
             <button
-              onClick={onOpenCart}
-              className="relative p-2 rounded-full hover:bg-neutral-100 text-neutral-700 transition-colors cursor-pointer"
-               title="Shopping Cart"
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="p-2 rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
+              title={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
             >
-              <ShoppingBag className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-[#18181B] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
-                  {cartCount}
-                </span>
-              )}
+              <PanelLeft className="w-5 h-5" />
             </button>
-
-            <button
-              onClick={onBackToHome}
-              className="hidden sm:flex items-center gap-1.5 text-xs font-semibold bg-[#18181B] hover:bg-neutral-800 text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-sm"
-            >
-              <span>Back to Store</span>
-            </button>
+            <span className="text-xs font-semibold text-[#18181B] uppercase tracking-widest">
+              Shopping Assistant
+            </span>
           </div>
+
+          <button
+            onClick={onCloseChat}
+            className="p-2 rounded-full text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
+            title="Close"
+            aria-label="Close chat"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6" data-lenis-prevent>

@@ -10,6 +10,8 @@ interface HeaderProps {
   onOpenCart: () => void;
   onOpenConsultation: () => void;
   onOpenMenu?: () => void;
+  isAiChatOpen?: boolean;
+  onToggleAiChat?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +19,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCart,
   onOpenConsultation,
   onOpenMenu,
+  isAiChatOpen = false,
+  onToggleAiChat,
 }) => {
   const [isScrolled, setIsScrolled] = React.useState(false);
   const { pathname } = useLocation();
@@ -38,24 +42,33 @@ export const Header: React.FC<HeaderProps> = ({
 
   const textColorClass = isScrolled ? "text-[#1A1A1A]" : "text-white";
   const bgHoverClass = isScrolled ? "hover:bg-black/5" : "hover:bg-white/10";
+  // When the AI chat overlay is open, force the solid header style (dark bg)
+  // so the navbar stays readable above the light chat surface, even on the
+  // home hero where it would otherwise be transparent.
+  const solidHeader = !isHome || isScrolled || isAiChatOpen;
+  const sparklesActive = isAiChatOpen;
+
+  const sparklesBtn = (className: string) => (
+    <button
+      onClick={isAiChatOpen && onToggleAiChat ? onToggleAiChat : onOpenConsultation}
+      className={`p-2 transition-all cursor-pointer flex items-center justify-center rounded-xl hover:opacity-75 ${bgHoverClass} ${sparklesActive ? "bg-white/15" : ""} ${className}`}
+      title={isAiChatOpen ? "Close AI Chat" : "AI Chat"}
+      aria-label={isAiChatOpen ? "Close AI Chat" : "AI Chat"}
+    >
+      <Sparkles className="w-5 h-5 currentColor" />
+    </button>
+  );
 
   return (
     <header
       id="main-header"
-      className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-12 pointer-events-none transition-all duration-300 ${textColorClass} ${!isHome && !isScrolled ? 'bg-[#1A1A1A]' : ''} ${isScrolled ? 'glass-header' : ''}`}
+      className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-12 pointer-events-none transition-all duration-300 ${textColorClass} ${!solidHeader ? "" : isScrolled ? "glass-header" : "bg-[#1A1A1A]"}`}
     >
       <div className="w-full pointer-events-auto py-2">
         {/* Mobile Header */}
         <div className="flex md:hidden items-center">
           <div className="flex-1 flex items-center gap-2">
-            <button
-              onClick={onOpenConsultation}
-              className={`p-2 transition-all cursor-pointer flex items-center justify-center rounded-xl hover:opacity-75 ${bgHoverClass}`}
-              title="AI Chat"
-              aria-label="AI Chat"
-            >
-              <Sparkles className="w-5 h-5 currentColor" />
-            </button>
+            {sparklesBtn("")}
           </div>
 
           <Link
@@ -96,14 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Desktop Header */}
         <div className="hidden md:grid grid-cols-[auto_1fr_auto] items-center">
           <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenConsultation}
-              className={`p-2 transition-all cursor-pointer flex items-center justify-center rounded-xl hover:opacity-75 ${bgHoverClass}`}
-              title="AI Chat"
-              aria-label="AI Chat"
-            >
-              <Sparkles className="w-5 h-5 currentColor" />
-            </button>
+            {sparklesBtn("")}
 
             <Link
               to="/"
