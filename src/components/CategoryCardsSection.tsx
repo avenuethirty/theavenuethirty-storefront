@@ -82,11 +82,7 @@ export const CategoryCardsSection: React.FC<CategoryCardsSectionProps> = ({ prod
                 <h3 className="text-2xl sm:text-3xl font-light tracking-tight text-white font-sans">
                   {cat.name}
                 </h3>
-                {isLive ? (
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/80 group-hover:text-white transition-colors">
-                    Shop now
-                  </span>
-                ) : (
+                {!isLive && (
                   <p className="text-xs sm:text-sm text-neutral-200 font-light leading-relaxed font-sans">
                     Opening soon on the avenue.
                   </p>
