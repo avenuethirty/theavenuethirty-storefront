@@ -38,6 +38,11 @@ export const SHOP_CONFIG = {
     { name: "Kids", slug: "toys_kids" },
   ],
 
+  // Homepage "Walk the avenue" categories grid
+  categoryGrid: {
+    columns: 4, // desktop column count: 3, 4, 5, 6, or 8
+  },
+
   social: {
     instagram: "https://instagram.com/theavenuethirty",
     tiktok: "https://tiktok.com/@theavenuethirty",
