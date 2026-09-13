@@ -46,7 +46,9 @@ export const CategoryCardsSection: React.FC<CategoryCardsSectionProps> = ({ prod
         {SHOP_CONFIG.categories.map((cat, idx) => {
           const count = counts[cat.slug] || 0;
           const isLive = count > 0;
-          const image = coverImage[cat.slug];
+          // Custom image from config wins; fall back to the first catalogue
+          // product image for the category when no custom image is set.
+          const image = cat.image || coverImage[cat.slug];
 
           const card = (
             <motion.div
@@ -54,7 +56,7 @@ export const CategoryCardsSection: React.FC<CategoryCardsSectionProps> = ({ prod
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: idx * 0.1 }}
-              className={`relative rounded-none overflow-hidden group min-h-[380px] sm:min-h-[460px] flex flex-col justify-end p-[20px] text-white ${
+              className={`relative rounded-none overflow-hidden group aspect-[4/5] flex flex-col justify-end p-[20px] text-white ${
                 isLive ? '' : 'opacity-80'
               }`}
             >
@@ -80,15 +82,14 @@ export const CategoryCardsSection: React.FC<CategoryCardsSectionProps> = ({ prod
                 <h3 className="text-2xl sm:text-3xl font-light tracking-tight text-white font-sans">
                   {cat.name}
                 </h3>
-                <p className="text-xs sm:text-sm text-neutral-200 font-light leading-relaxed font-sans">
-                  {isLive
-                    ? `${count} product${count === 1 ? '' : 's'} from a verified seller.`
-                    : 'Opening soon on the avenue.'}
-                </p>
-                {isLive && (
+                {isLive ? (
                   <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/80 group-hover:text-white transition-colors">
                     Shop now
                   </span>
+                ) : (
+                  <p className="text-xs sm:text-sm text-neutral-200 font-light leading-relaxed font-sans">
+                    Opening soon on the avenue.
+                  </p>
                 )}
               </div>
             </motion.div>
