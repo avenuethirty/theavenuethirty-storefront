@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Trash2, Plus, Minus, ArrowRight, Check, Sparkles } from 'lucide-react';
 import { CartItem, GuestDetails } from '../types';
 import { buildWhatsAppLink } from '../utils/whatsapp';
@@ -55,6 +55,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   });
   const [orderId, setOrderId] = useState('');
   const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
+
+  // Lock page scroll while the drawer is open (same pattern App.tsx uses for
+  // the AI chat). Without this, Lenis scrolls the page behind the drawer when
+  // the wheel lands on the backdrop or header/footer areas.
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -147,7 +158,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         </div>
 
         {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6" data-lenis-prevent>
           {orderComplete ? (
             <div className="py-12 text-center space-y-4">
               <div className="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto text-2xl">
@@ -289,7 +300,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <select
                     value={guest.city}
                     onChange={(e) => setGuest({ ...guest, city: e.target.value })}
-                    className="w-full border border neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
+                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
                   >
                     <option value="">Select city</option>
                     {PAKISTANI_CITIES.map((city) => (
@@ -304,7 +315,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <textarea
                     value={guest.notes}
                     onChange={(e) => setGuest({ ...guest, notes: e.target.value })}
-                    className="w-full border border neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 resize-none"
+                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 resize-none"
                     rows={2}
                     placeholder="Gate code, preferred delivery window..."
                   />

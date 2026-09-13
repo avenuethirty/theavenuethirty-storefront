@@ -151,7 +151,7 @@ export const ConsultationQuizModal: React.FC<ConsultationQuizModalProps> = ({
         </div>
 
         {/* Modal Body Content */}
-        <div className="p-6 sm:p-8 max-h-[80vh] overflow-y-auto">
+        <div className="p-6 sm:p-8 max-h-[80vh] overflow-y-auto" data-lenis-prevent>
           {isGenerating ? (
             <div className="py-16 text-center flex flex-col items-center justify-center">
               <div className="w-16 h-16 rounded-full bg-black/5 flex items-center justify-center animate-spin mb-4 text-[#111110]">

@@ -5,6 +5,15 @@
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   }
+
+  /* Tailwind v4 preflight resets buttons but never sets cursor: pointer;
+     browsers default <button> to the arrow cursor. Make interactive controls
+     show a pointer on hover across the whole site. */
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 .font-serif-custom {

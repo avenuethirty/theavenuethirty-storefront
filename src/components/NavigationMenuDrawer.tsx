@@ -33,7 +33,7 @@ export const NavigationMenuDrawer: React.FC<NavigationMenuDrawerProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6" data-lenis-prevent>
           <span className="text-[10px] uppercase font-bold tracking-[0.25em] text-[#9A8C83] block mb-2">
             Shop by Category
           </span>

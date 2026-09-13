@@ -60,7 +60,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
           )}
         </div>
 
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6 pb-24">
           <PLPGrid
             products={filtered}
             onAddToCart={onAddToCart}

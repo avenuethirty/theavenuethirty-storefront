@@ -29,7 +29,7 @@ export const Footer: React.FC = () => {
               </Link>
             </div>
             <p className="text-xs text-neutral-400 max-w-sm leading-relaxed">
-              Bespoke medical skincare compounded by board-certified dermatologists. Science-backed topical treatments adapted precisely to your evolving skin barrier.
+              Curated skincare, bags, jewellery, and more — delivered across Pakistan with cash on delivery. Personal help on WhatsApp, every step of the way.
             </p>
           </div>
 
