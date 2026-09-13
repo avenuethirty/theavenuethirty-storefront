@@ -43,7 +43,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
         <div className="mb-12">
           <div className="max-w-[1000px] w-full pl-0">
             <ScrollTextReveal
-              text="The full shelf on the avenue spans skincare and beauty, bags, jewellery, accessories, and kids' toys — every piece from a verified seller, photographed and priced clearly. Explore the whole catalogue: discover, compare, order — built for confident shopping."
+              text="The full shelf on the avenue spans skincare and beauty, bags, jewellery, accessories, and kids' toys - every piece from a verified seller, photographed and priced clearly. Explore the whole catalogue: discover, compare, order - built for confident shopping."
               boldWords={['discover,', 'compare,', 'order', 'discover', 'compare']}
               className="text-xl sm:text-2xl md:text-[34px] text-[#2C2A29] font-light leading-[1.3] font-sans"
             />

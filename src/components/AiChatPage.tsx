@@ -486,7 +486,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
         className="hidden"
       />
 
-      {/* Mobile: backdrop overlay — click to close (same pattern as CartDrawer) */}
+      {/* Mobile: backdrop overlay - click to close (same pattern as CartDrawer) */}
       <AnimatePresence>
         {sidebarOpen && !isDesktop && (
           <motion.div

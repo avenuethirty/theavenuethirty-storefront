@@ -76,7 +76,7 @@ export const AboutUsSection: React.FC = () => {
       <div className="w-full pl-[10px] pr-6 sm:pr-10 mb-20">
         <div className="max-w-[1000px] w-full pl-0">
           <ScrollTextReveal
-            text="Shopping well comes down to three simple pillars: browsing shops you can trust, ordering what you actually want with Cash on Delivery, and enjoying pieces that arrive exactly as promised. It all boils down to this mantra: browse, order, enjoy — a simple roadmap for confident shopping."
+            text="Shopping well comes down to three simple pillars: browsing shops you can trust, ordering what you actually want with Cash on Delivery, and enjoying pieces that arrive exactly as promised. It all boils down to this mantra: browse, order, enjoy - a simple roadmap for confident shopping."
             boldWords={['browse,', 'order,', 'enjoy', 'browse', 'order']}
             className="text-xl sm:text-2xl md:text-[34px] text-[#2C2A29] font-light leading-[1.3] font-sans"
           />

@@ -77,7 +77,7 @@ export const CommunityMarquee: React.FC = () => {
           </h2>
 
           <p className="text-xs sm:text-sm text-[#5E5E5E] max-w-xl leading-relaxed mb-6">
-            The people of the avenue — the sellers behind the shops and the shoppers behind the orders. Real faces, real finds, real deliveries.
+            The people of the avenue - the sellers behind the shops and the shoppers behind the orders. Real faces, real finds, real deliveries.
           </p>
 
           <Link

@@ -32,7 +32,7 @@ export const SystemApproachSection: React.FC = () => {
             referrerPolicy="no-referrer"
           />
         </span>{' '}
-        built on <span className="italic font-serif-custom">honesty</span> — picked for{' '}
+        built on <span className="italic font-serif-custom">honesty</span> - picked for{' '}
         <span className="inline-flex items-center align-middle mx-1 transform -translate-y-1">
           <img
             src={imgPill2}
@@ -80,7 +80,7 @@ export const SystemApproachSection: React.FC = () => {
               Verified <span className="italic font-serif-custom">sellers</span>, honest listings
             </h3>
             <p className="text-xs sm:text-sm text-neutral-200 font-light leading-relaxed font-sans">
-              Every seller on The Avenue Thirty is chosen, and every product is presented with real images and clear prices — no surprises.
+              Every seller on The Avenue Thirty is chosen, and every product is presented with real images and clear prices - no surprises.
             </p>
           </div>
         </motion.div>
