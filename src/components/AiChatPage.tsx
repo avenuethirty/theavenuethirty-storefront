@@ -16,14 +16,14 @@ import {
   Pill, 
   Sparkle, 
   Trash2,
-  Upload, 
-  X, 
-  RefreshCw, 
+  Upload,
+  RefreshCw,
   ChevronDown,
   Image as ImageIcon,
   Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useLocation } from 'react-router-dom';
 import { compressImage } from '../utils/imageCompressor';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Product } from '../types';
@@ -95,11 +95,7 @@ interface ChatThread {
 }
 
 interface AiChatPageProps {
-  initialQuery?: string;
-  onCloseChat: () => void;
   onAddToCart: (product: Product) => void;
-  cartCount: number;
-  onOpenCart: () => void;
   products?: Product[];
 }
 
@@ -153,13 +149,12 @@ const STORAGE_KEY_THREADS = 'av30-chat-threads';
 const STORAGE_KEY_ACTIVE = 'av30-chat-active-thread';
 
 export const AiChatPage: React.FC<AiChatPageProps> = ({
-  initialQuery = '',
-  onCloseChat,
   onAddToCart,
-  cartCount,
-  onOpenCart,
   products,
 }) => {
+  const location = useLocation();
+  const initialQuery =
+    (location.state as { initialQuery?: string } | null)?.initialQuery || '';
   const catalogue = products || PRODUCTS;
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string>('');
@@ -171,6 +166,11 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
+
+  // Desktop: aside menu open by default. Mobile: closed.
+  useEffect(() => {
+    setSidebarOpen(isDesktop);
+  }, [isDesktop]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -474,7 +474,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-[#FAF9F6] text-[#1A1A1A] font-sans overflow-hidden pt-[68px]" data-lenis-prevent>
+    <div className="relative flex h-screen pt-[68px] bg-[#FAF9F6] text-[#1A1A1A] font-sans overflow-hidden" data-lenis-prevent>
       
       <input
         type="file"
@@ -600,29 +600,13 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col h-full bg-[#F4F4F5] relative z-10 min-w-0">
-        <header className="h-12 px-4 sm:px-6 bg-white border-b border-neutral-200 flex items-center justify-between shrink-0 z-20">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen((v) => !v)}
-              className="p-2 rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
-              title={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
-            >
-              <PanelLeft className="w-5 h-5" />
-            </button>
-            <span className="text-xs font-semibold text-[#18181B] uppercase tracking-widest">
-              Shopping Assistant
-            </span>
-          </div>
-
-          <button
-            onClick={onCloseChat}
-            className="p-2 rounded-full text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
-            title="Close"
-            aria-label="Close chat"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </header>
+        <button
+          onClick={() => setSidebarOpen((v) => !v)}
+          className="absolute top-3 left-3 z-20 p-2 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition-colors cursor-pointer"
+          title={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+        >
+          <PanelLeft className="w-5 h-5" />
+        </button>
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6" data-lenis-prevent>
           {messages.length === 0 && (

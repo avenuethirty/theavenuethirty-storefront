@@ -21,8 +21,6 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [catalogue, setCatalogue] = useState<Product[]>([]);
 
-  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
-  const [aiChatQuery, setAiChatQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -33,13 +31,6 @@ export default function App() {
   useEffect(() => {
     fetchCatalogue().then((products) => setCatalogue(products));
   }, []);
-
-  // Close the AI chat overlay whenever the route changes (navbar link, logo,
-  // category link) so the page behind is what the user navigated to.
-  useEffect(() => {
-    if (isAiChatOpen) setIsAiChatOpen(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -75,20 +66,8 @@ export default function App() {
     }
   }, [pathname]);
 
-  useEffect(() => {
-    if (isAiChatOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isAiChatOpen]);
-
   const handleOpenAiChat = (query?: string) => {
-    setAiChatQuery(query || '');
-    setIsAiChatOpen(true);
+    navigate('/chat', { state: { initialQuery: query || '' } });
   };
 
   const handleAddToCart = (product: Product, customFormulaName?: string) => {
@@ -139,8 +118,6 @@ export default function App() {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenConsultation={() => handleOpenAiChat()}
         onOpenMenu={() => setIsMenuOpen(true)}
-        isAiChatOpen={isAiChatOpen}
-        onToggleAiChat={() => setIsAiChatOpen((v) => !v)}
       />
 
       <main>
@@ -159,6 +136,7 @@ export default function App() {
             }
           />
           <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} />} />
+          <Route path="/chat" element={<AiChatPage onAddToCart={handleAddToCart} products={catalogue} />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage onOpenConsultation={(query) => handleOpenAiChat(query)} />} />
           <Route path="/faq" element={<FaqPage />} />
@@ -167,18 +145,7 @@ export default function App() {
         </Routes>
       </main>
 
-      {!isAiChatOpen && <Footer />}
-
-      {isAiChatOpen && (
-        <AiChatPage
-          initialQuery={aiChatQuery}
-          onCloseChat={() => setIsAiChatOpen(false)}
-          onAddToCart={handleAddToCart}
-          cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
-          products={catalogue}
-        />
-      )}
+      <Footer />
 
       <CartDrawer
         isOpen={isCartOpen}
