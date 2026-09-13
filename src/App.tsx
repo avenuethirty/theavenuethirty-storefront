@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Lenis from 'lenis';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -6,7 +6,7 @@ import { AiChatPage } from './components/AiChatPage';
 import { CartDrawer } from './components/CartDrawer';
 import { NavigationMenuDrawer } from './components/NavigationMenuDrawer';
 import { ConsultationQuizModal } from './components/ConsultationQuizModal';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './components/CategoryPage';
@@ -30,6 +30,8 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigate = useNavigate();
+  const lenisRef = useRef<Lenis | null>(null);
+  const { pathname } = useLocation();
 
   useEffect(() => {
     fetchCatalogue().then((products) => setCatalogue(products));
@@ -42,17 +44,32 @@ export default function App() {
       smoothWheel: true,
     });
 
+    lenisRef.current = lenis;
+
+    let rafId = 0;
     function raf(time: number) {
       lenis.raf(time);
-      requestAnimationFrame(raf);
+      rafId = requestAnimationFrame(raf);
     }
 
-    requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
 
     return () => {
+      cancelAnimationFrame(rafId);
       lenis.destroy();
+      lenisRef.current = null;
     };
   }, []);
+
+  // Reset scroll to top on every page change. Keyed on pathname only, so
+  // URL-synced query strings (e.g. category filters) don't trigger a jump.
+  useLayoutEffect(() => {
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(0, { immediate: true });
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (isAiChatOpen) {
