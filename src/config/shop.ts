@@ -32,10 +32,10 @@ export const SHOP_CONFIG = {
   // Allowed Main Categories for Top Navigation & Filters
   categories: [
     //{ name: "Clothing & Apparel", slug: "clothing_apparel" },
-    { name: "Skincare & Beauty", slug: "skincare_beauty" },
-    { name: "Bags & Backpacks", slug: "bags_backpacks" },
-    { name: "Accessories & Jewellery", slug: "accessories" },
-    { name: "Toys & Kids", slug: "toys_kids" },
+    { name: "Skincare", slug: "skincare_beauty" },
+    { name: "Bags", slug: "bags_backpacks" },
+    { name: "Jewellery", slug: "accessories" },
+    { name: "Kids", slug: "toys_kids" },
   ],
 
   social: {

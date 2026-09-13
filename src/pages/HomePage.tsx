@@ -1,28 +1,55 @@
 import React from 'react';
 import { HeroSection } from '../components/HeroSection';
+import { CategoryCardsSection } from '../components/CategoryCardsSection';
+import { ProductRail } from '../components/ProductRail';
+import { TypeCardsSection } from '../components/TypeCardsSection';
 import { HowItWorks } from '../components/HowItWorks';
+import { SellersSection } from '../components/SellersSection';
 import { CtaSection } from '../components/CtaSection';
-import { ProductGrid } from '../components/ProductGrid';
 import { SystemApproachSection } from '../components/SystemApproachSection';
 import { AboutUsSection } from '../components/AboutUsSection';
+import { ProductGrid } from '../components/ProductGrid';
 import { TikTokTestimonials } from '../components/TikTokTestimonials';
-import { DermatologyTeam } from '../components/DermatologyTeam';
+import { CommunityMarquee } from '../components/CommunityMarquee';
 import { Product } from '../types';
 
 interface HomePageProps {
   onStartAiChat: (query?: string) => void;
   onAddToCart: (product: Product) => void;
-  onOpenConsultation: (query?: string) => void;
   products?: Product[];
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
   onStartAiChat,
   onAddToCart,
-  onOpenConsultation,
   products,
 }) => {
   const catalogue = products || [];
+
+  // Must-Have Styles: products tagged "Featured", fallback to first 8
+  const featured = catalogue.filter((p) => p.collections?.includes('Featured'));
+  const mustHave = (featured.length > 0 ? featured : catalogue).slice(0, 8);
+
+  // On Sale: discounted items, deepest discount first
+  const onSale = catalogue
+    .filter((p) => p.originalPrice && p.originalPrice > p.priceMonthly)
+    .sort(
+      (a, b) =>
+        (b.originalPrice! - b.priceMonthly) / b.originalPrice! -
+        (a.originalPrice! - a.priceMonthly) / a.originalPrice!
+    )
+    .slice(0, 8);
+
+  // Recommended: the premium pick from each category, up to 4
+  const bestByCategory = new Map<string, Product>();
+  for (const product of catalogue) {
+    const current = bestByCategory.get(product.category);
+    if (!current || product.priceMonthly > current.priceMonthly) {
+      bestByCategory.set(product.category, product);
+    }
+  }
+  const recommended = Array.from(bestByCategory.values()).slice(0, 4);
+
   return (
     <main className="relative w-full">
       <div className="relative w-full">
@@ -32,37 +59,48 @@ export const HomePage: React.FC<HomePageProps> = ({
       <div className="relative bg-[#FAFAF9]">
         <SystemApproachSection />
         <AboutUsSection />
-        <ProductGrid
+        <CategoryCardsSection products={catalogue} />
+
+        <ProductRail
+          id="must-have"
+          title="Must-Have Styles"
+          subtitle="Every product on the avenue is picked from verified sellers and presented honestly. Real images, clear prices, no surprises. Start with the pieces our shoppers reach for first."
+          products={mustHave}
           onAddToCart={onAddToCart}
-          onOpenConsultation={() => onOpenConsultation?.('Prescription product recommendations for my skin')}
+        />
+
+        <ProductRail
+          id="on-sale"
+          title="On Sale"
+          subtitle="Real discounts on real products. Pay when it arrives."
+          products={onSale}
+          onAddToCart={onAddToCart}
+        />
+
+        <TypeCardsSection products={catalogue} />
+
+        <ProductGrid
           products={catalogue}
-          collection="Featured"
+          onAddToCart={onAddToCart}
         />
-        <HowItWorks onStartConsultation={() => onOpenConsultation?.('Medical prescription analysis for my skin condition')} />
-        <CtaSection onOpenConsultation={() => onOpenConsultation?.('Prescription product recommendations for my skin')} />
-        <TikTokTestimonials
-          onAddToCart={(productName, priceStr) => {
-            const numericPrice = parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-            const matched = catalogue.find((p) => p.name === productName);
-            onAddToCart(
-              matched || {
-                id: `tiktok-${Date.now()}`,
-                name: productName,
-                tagline: 'Featured in Consumer Video Review',
-                priceMonthly: numericPrice,
-                category: 'skincare_beauty',
-                rating: 5.0,
-                reviewsCount: 124,
-                description: 'Directly featured formula in consumer TikTok video review',
-                imageUrl: matched?.imageUrl || catalogue[0]?.imageUrl || '',
-                keyIngredients: ['Active Rx Complex', 'Micro-encapsulated Retinal'],
-                bestFor: ['All skin types', 'Barrier repair'],
-              },
-              'Featured TikTok Formula'
-            );
-          }}
+
+        <ProductRail
+          id="recommended"
+          title="Recommended"
+          subtitle="A confident pick from every shop on the avenue."
+          products={recommended}
+          onAddToCart={onAddToCart}
         />
-        <DermatologyTeam onOpenConsultation={() => onOpenConsultation?.('Consultation with dermatology team')} />
+
+        <HowItWorks />
+
+        <TikTokTestimonials />
+
+        <CommunityMarquee />
+
+        <SellersSection productCount={catalogue.length} />
+
+        <CtaSection />
       </div>
     </main>
   );

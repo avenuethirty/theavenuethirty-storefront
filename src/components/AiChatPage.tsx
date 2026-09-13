@@ -340,8 +340,8 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     const queryText = overrideQuery ?? input;
     if ((!queryText.trim() && !selectedImageName) || isLoading) return;
 
-    const fullText = selectedImageName 
-      ? `[Lampiran Foto Kulit: ${selectedImageName}] ${queryText.trim() || 'Mohon periksa dan analisis kondisi kulit pada foto ini.'}`
+    const fullText = selectedImageName
+      ? `[Photo attached: ${selectedImageName}] ${queryText.trim() || 'Please take a look at this and tell me what you think.'}`
       : queryText.trim();
 
     const userMsg: Message = {
@@ -631,7 +631,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                     Hello, what are you shopping for today?
                   </h2>
                   <p className="text-xs sm:text-sm text-neutral-500 max-w-md mx-auto leading-relaxed">
-                    The Avenue Thirty Personal Shopping Assistant can help you discover skincare, bags, jewellery, and more — upload a photo or ask away.
+                    The Avenue Thirty Personal Shopping Assistant can help you discover skincare, bags, jewellery, and more. Ask away.
                   </p>
                 </div>
 
@@ -716,7 +716,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                                    </span>
                                   <h4 className="font-semibold text-xs text-[#18181B] truncate mt-1">{prod.name}</h4>
                                   <p className="text-[11px] font-bold text-[#18181B] mt-0.5">
-                                    {SHOP_CONFIG.localization.currencySymbol}{prod.priceMonthly.toFixed(2)} {prod.category === 'Prescription' ? '/mo' : ''}
+                                    {SHOP_CONFIG.localization.currencySymbol}{prod.priceMonthly.toFixed(2)}
                                   </p>
                                 </div>
                               </div>

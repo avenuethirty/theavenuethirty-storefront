@@ -1,52 +1,45 @@
 import React from 'react';
-import { Sparkles, Stethoscope, PackageCheck } from 'lucide-react';
+import { Store, MessageCircle, PackageCheck } from 'lucide-react';
 
-interface HowItWorksProps {
-  onStartConsultation: () => void;
-}
+const STEPS = [
+  {
+    num: '01',
+    title: 'Browse the avenue',
+    desc: 'Fashion, beauty, toys, and more from verified sellers, all in one trusted place. Presented honestly with real images and clear prices.',
+    icon: Store,
+  },
+  {
+    num: '02',
+    title: 'Order with Cash on Delivery',
+    desc: 'Add products to your cart and confirm your order on WhatsApp. No upfront payment, no risk. You pay only when your order arrives.',
+    icon: MessageCircle,
+  },
+  {
+    num: '03',
+    title: 'Delivered to your door',
+    desc: 'We coordinate delivery to your address and back every order with platform support. If something goes wrong, we own the conversation.',
+    icon: PackageCheck,
+  },
+];
 
-export const HowItWorks: React.FC<HowItWorksProps> = ({ onStartConsultation }) => {
-  const steps = [
-    {
-      num: '01',
-      title: 'Digital Consultation',
-      subtitle: '5-Minute Diagnostic Quiz',
-      desc: 'Answer quick questions about your skin concerns, breakout history, lifestyle, and sensitivity level.',
-      icon: Sparkles
-    },
-    {
-      num: '02',
-      title: 'Doctor Prescribed',
-      subtitle: 'Custom Compounded Active Ingredients',
-      desc: 'A licensed U.S. dermatologist evaluates your skin profile and custom-mixes prescription ingredients at exact strengths.',
-      icon: Stethoscope
-    },
-    {
-      num: '03',
-      title: 'Delivered & Adaptive',
-      subtitle: 'Free Shipping Every 60 Days',
-      desc: 'Delivered directly to your door. As your skin improves, your assigned doctor adjusts ingredient dosages automatically.',
-      icon: PackageCheck
-    }
-  ];
-
+export const HowItWorks: React.FC = () => {
   return (
     <section id="how-it-works" className="py-20 md:py-28 bg-[#FAFAF9] text-[#1A1A1A]">
       <div className="max-w-7xl mx-auto px-6">
-        
+
         {/* Section Header */}
         <div className="flex flex-col items-center text-center mb-16">
           <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-[#1A1A1A] font-sans">
             How <span className="italic font-serif-custom">Avenue Thirty</span> Works
           </h2>
           <p className="mt-4 text-sm sm:text-base text-[#5E5E5E] max-w-lg leading-relaxed">
-            Prescription skincare designed around your unique skin biology, with zero clinic waiting rooms or synthetic fillers.
+            Shopping online in Pakistan should feel safe and easy. Here is the whole flow, from browse to doorstep.
           </p>
         </div>
 
         {/* 3-Column Steps Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-          {steps.map((step) => {
+          {STEPS.map((step) => {
             const Icon = step.icon;
             return (
               <div
@@ -59,6 +52,10 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onStartConsultation }) =
                       <Icon className="w-6 h-6 stroke-[1.75]" />
                     </div>
                   </div>
+
+                  <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#9A8C83] block mb-2">
+                    {step.num}
+                  </span>
 
                   <h3 className="text-xl font-medium text-[#1A1A1A] tracking-tight">{step.title}</h3>
 

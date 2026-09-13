@@ -21,75 +21,75 @@ export interface TikTokItem {
 const TIKTOK_TESTIMONIALS: TikTokItem[] = [
   {
     id: '1',
-    creatorHandle: '@kate.dermatology',
-    creatorName: 'Kate Lindqvist',
-    creatorRole: 'Verified Patient • 3 Weeks on Rx',
+    creatorHandle: '@ayesha.style',
+    creatorName: 'Ayesha Khan',
+    creatorRole: 'Verified Shopper • Skincare',
     views: '184.2K',
     likes: '24.1K',
     duration: '0:18',
-    quote: 'After 3 weeks on my custom CoreLab Rx, my redness completely subsided. No harsh peeling or barrier damage.',
-    productName: 'Custom Barrier Repair Serum',
-    productPrice: 'Rp 329.000',
+    quote: 'Ordered my skincare bundle with Cash on Delivery. The parcel arrived in two days, exactly as shown on the avenue.',
+    productName: 'Glow Ritual Skincare Set',
+    productPrice: 'Rs. 4,500',
     posterUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80',
     videoUrl: 'https://www.dropbox.com/scl/fi/9msmi2i6ngl9s2ahjyhh4/From-Klickpin.com-Confident-real-talk-lines-with-charm-and-useful-ideas-for-thoughtful-sharing-for-quiet-confidence-pin-id-600526931577072002.mp4?rlkey=65bxfmv3570z4i7j8n6e6no7c&raw=1',
     verified: true,
   },
   {
     id: '2',
-    creatorHandle: '@dr.julian.skin',
-    creatorName: 'Dr. Julian Vance, MD',
-    creatorRole: 'Board Certified Dermatologist',
+    creatorHandle: '@fatima.bags',
+    creatorName: 'Fatima Raza',
+    creatorRole: 'Bags & Accessories Lover',
     views: '320.5K',
     likes: '45.8K',
     duration: '0:24',
-    quote: 'CoreLab allows us to fine-tune active ingredient percentages monthly as patient tolerance improves.',
-    productName: 'Tretinoin 0.025% + Niacinamide Gel',
-    productPrice: 'Rp 389.000',
+    quote: 'The structured bag I ordered looks even better in person. Real images, honest prices, no surprises at all.',
+    productName: 'Luna Structured Handbag',
+    productPrice: 'Rs. 3,890',
     posterUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80',
     videoUrl: 'https://www.dropbox.com/scl/fi/0vjnxog9celys6oj62fy2/From-Klickpin.com-Elegant-alteration-hacks-for-people-who-love-beauty-for-living-for-practical-creative-living-pin-id-11822017768226863.mp4?rlkey=pdaw57bwf8tw1tj6luycj7tma&raw=1',
     verified: true,
   },
   {
     id: '3',
-    creatorHandle: '@maya.glowlab',
-    creatorName: 'Maya Thorne',
-    creatorRole: 'Skincare Reviewer',
+    creatorHandle: '@zara.unboxes',
+    creatorName: 'Zara Malik',
+    creatorRole: 'Verified Shopper • Jewellery',
     views: '295.8K',
     likes: '38.2K',
     duration: '0:15',
-    quote: 'The AI chat analyzed my texture and my custom formula arrived in 2 days. The glass pump dispenser feels like luxury.',
-    productName: 'Daily Radiance Renewal Formula',
-    productPrice: 'Rp 299.000',
+    quote: 'Delicate jewellery that actually lasts. The order confirmation on WhatsApp took under a minute. So easy.',
+    productName: 'Dawn Link Bracelet',
+    productPrice: 'Rs. 2,990',
     posterUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
     videoUrl: 'https://www.dropbox.com/scl/fi/hm10s1nwfd7yuge2bjo25/From-Klickpin.com-Steal-these-easy-wedding-decor-tips-that-turn-ordinary-ideas-into-scroll-stopping-inspiration-using-simple-ideas-you-can-actual.mp4?rlkey=8q7rz7rlieeo1jtrv0jr735g1&raw=1',
     verified: true,
   },
   {
     id: '4',
-    creatorHandle: '@clara.skinjournal',
-    creatorName: 'Clara Oswald',
-    creatorRole: 'Verified Patient • 4 Weeks',
+    creatorHandle: '@maryam.finds',
+    creatorName: 'Maryam Sheikh',
+    creatorRole: 'Verified Shopper • Kids',
     views: '168.5K',
     likes: '21.3K',
     duration: '0:22',
-    quote: 'My skin barrier repaired faster than ever before. Highly custom formulation that fits my daily lifestyle.',
-    productName: 'Hydra-Barrier Repair Cream',
-    productPrice: 'Rp 310.000',
+    quote: 'Toys for my kids arrived well-packed and exactly as described. Paying on delivery made it completely stress-free.',
+    productName: "Kids' Play & Learn Set",
+    productPrice: 'Rs. 3,100',
     posterUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
     videoUrl: 'https://www.dropbox.com/scl/fi/fckb0z8iwht269rpnvdjv/From-Klickpin.com-Try-Smart-road-trip-essentials-that-are-perfect-for-beginners-who-still-want-an-impressive-result-for-your-next-Pinterest-save.mp4?rlkey=vzrd7k4mggd4pc9eoocrxatut&raw=1',
     verified: true,
   },
   {
     id: '5',
-    creatorHandle: '@nathan.skincare',
-    creatorName: 'Nathan Chen',
-    creatorRole: 'Aesthetic Specialist',
+    creatorHandle: '@hina.curated',
+    creatorName: 'Hina Ali',
+    creatorRole: 'Marketplace Reviewer',
     views: '280.1K',
     likes: '34.9K',
     duration: '0:19',
-    quote: 'Recommending bespoke compounded treatments to patients who want real clinical performance without fluff.',
-    productName: 'Cellular Renewal Gel Rx',
-    productPrice: 'Rp 365.000',
+    quote: 'The Avenue Thirty is my first stop for gifts now. Curated shops, real reviews, and orders that just work.',
+    productName: 'Curated Gift Edit',
+    productPrice: 'Rs. 3,650',
     posterUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
     videoUrl: 'https://www.dropbox.com/scl/fi/7mykt7nyeuw5elnbb3gx7/From-Klickpin.com-Unique-Brunch-Ideas-Worth-Trying-pin-id-856528422895994614.mp4?rlkey=ftc14e7ews5gqt0jccvkh1h9u&raw=1',
     verified: true,
@@ -225,18 +225,18 @@ export const TikTokTestimonials: React.FC<TikTokTestimonialsProps> = () => {
   ];
 
   return (
-    <section ref={sectionRef} id="tiktok-testimonials" className="py-20 sm:py-28 bg-[#FAFAF9] text-[#1A1A1A] overflow-hidden">
+    <section ref={sectionRef} id="video-testimonials" className="py-20 sm:py-28 bg-[#FAFAF9] text-[#1A1A1A] overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
-        
+
         {/* Section Header */}
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-10 sm:mb-14">
           <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-[#1A1A1A] font-sans leading-[1.15] mb-4">
-            Real consumer reviews, <br className="hidden sm:inline" />
-            <span className="italic font-serif-custom font-normal">verified formulation results</span>
+            Real shopper reviews, <br className="hidden sm:inline" />
+            <span className="italic font-serif-custom font-normal">verified marketplace orders</span>
           </h2>
 
           <p className="text-xs sm:text-sm text-[#5E5E5E] max-w-xl leading-relaxed">
-            Built for consistent performance, CoreLab supports skin barrier resilience — doctor-approved active ingredients compounded individually for zero short-term irritation.
+            Real people, real orders, real deliveries. See what shoppers across Pakistan say about their finds on the avenue.
           </p>
         </div>
 
@@ -290,4 +290,3 @@ export const TikTokTestimonials: React.FC<TikTokTestimonialsProps> = () => {
     </section>
   );
 };
-

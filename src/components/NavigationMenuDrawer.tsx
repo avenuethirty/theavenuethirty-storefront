@@ -80,7 +80,7 @@ export const NavigationMenuDrawer: React.FC<NavigationMenuDrawerProps> = ({
           </Link>
 
           <p className="text-[10px] uppercase tracking-widest text-center text-white/50 font-medium">
-            The Avenue Thirty — Curated for You
+            The Avenue Thirty, Curated for You
           </p>
         </div>
       </div>

@@ -27,10 +27,10 @@ export const AboutUsSection: React.FC = () => {
   const circles = [
     {
       type: 'image',
-      title: 'Analyze',
-      subtitle: 'Cellular Profile',
+      title: 'Browse',
+      subtitle: 'Curated Shops',
       image: imageAnalyze,
-      alt: 'Microscopic skin texture analysis',
+      alt: 'Browsing curated shops on the avenue',
       textColor: 'text-white',
       zIndex: 'z-20',
     },
@@ -44,10 +44,10 @@ export const AboutUsSection: React.FC = () => {
     },
     {
       type: 'image',
-      title: 'Prescribe',
-      subtitle: 'Custom Rx Formula',
+      title: 'Order',
+      subtitle: 'Cash on Delivery',
       image: imagePrescribe,
-      alt: 'Doctor custom prescription formulation',
+      alt: 'Confirming an order on WhatsApp',
       textColor: 'text-white',
       zIndex: 'z-30',
     },
@@ -61,10 +61,10 @@ export const AboutUsSection: React.FC = () => {
     },
     {
       type: 'image',
-      title: 'Sustain',
-      subtitle: 'Barrier Defense',
+      title: 'Enjoy',
+      subtitle: 'Doorstep Delivery',
       image: imageSustain,
-      alt: 'Radiant glowing skin barrier',
+      alt: 'Order delivered to your door',
       textColor: 'text-white',
       zIndex: 'z-40',
     },
@@ -76,8 +76,8 @@ export const AboutUsSection: React.FC = () => {
       <div className="w-full pl-[10px] pr-6 sm:pr-10 mb-20">
         <div className="max-w-[1000px] w-full pl-0">
           <ScrollTextReveal
-            text="Skin health encompasses three crucial pillars: understanding your skin's unique cellular profile, applying targeted doctor-formulated active ingredients, and maintaining long-term barrier resilience. It all boils down to this mantra: analyze, prescribe, sustain — a clinical roadmap for lasting skin clarity."
-            boldWords={['analyze,', 'prescribe,', 'sustain', 'analyze', 'prescribe']}
+            text="Shopping well comes down to three simple pillars: browsing shops you can trust, ordering what you actually want with Cash on Delivery, and enjoying pieces that arrive exactly as promised. It all boils down to this mantra: browse, order, enjoy — a simple roadmap for confident shopping."
+            boldWords={['browse,', 'order,', 'enjoy', 'browse', 'order']}
             className="text-xl sm:text-2xl md:text-[34px] text-[#2C2A29] font-light leading-[1.3] font-sans"
           />
         </div>
@@ -140,4 +140,3 @@ export const AboutUsSection: React.FC = () => {
     </section>
   );
 };
-

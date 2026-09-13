@@ -5,7 +5,6 @@ import { Footer } from './components/Footer';
 import { AiChatPage } from './components/AiChatPage';
 import { CartDrawer } from './components/CartDrawer';
 import { NavigationMenuDrawer } from './components/NavigationMenuDrawer';
-import { ConsultationQuizModal } from './components/ConsultationQuizModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
@@ -16,14 +15,12 @@ import { FaqPage } from './pages/FaqPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { SellPage } from './pages/SellPage';
 import { Product, CartItem } from './types';
-import { PRODUCTS } from './data/mockData';
 import { fetchCatalogue } from './utils/catalogue';
 
 export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [catalogue, setCatalogue] = useState<Product[]>([]);
 
-  const [isConsultationOpen, setIsConsultationOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [aiChatQuery, setAiChatQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -150,7 +147,6 @@ export default function App() {
                   handleAddToCart(product);
                   setIsCartOpen(true);
                 }}
-                onOpenConsultation={(query) => handleOpenAiChat(query || 'Prescription product recommendations for my skin')}
                 products={catalogue}
               />
             }
@@ -176,12 +172,6 @@ export default function App() {
           products={catalogue}
         />
       )}
-
-      <ConsultationQuizModal
-        isOpen={isConsultationOpen}
-        onClose={() => setIsConsultationOpen(false)}
-        onAddToCart={handleAddToCart}
-      />
 
       <CartDrawer
         isOpen={isCartOpen}

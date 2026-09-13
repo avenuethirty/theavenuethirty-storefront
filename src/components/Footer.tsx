@@ -29,7 +29,7 @@ export const Footer: React.FC = () => {
               </Link>
             </div>
             <p className="text-xs text-neutral-400 max-w-sm leading-relaxed">
-              Curated skincare, bags, jewellery, and more — delivered across Pakistan with cash on delivery. Personal help on WhatsApp, every step of the way.
+              Curated skincare, bags, jewellery, and more, delivered across Pakistan with cash on delivery. Personal help on WhatsApp, every step of the way.
             </p>
           </div>
 

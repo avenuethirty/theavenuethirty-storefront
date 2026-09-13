@@ -61,7 +61,7 @@ export async function createSellerLead(lead: SellerLeadData) {
       headers,
       body: JSON.stringify({
         properties: {
-          dealname: `Seller Lead — ${lead.brandName} (${lead.category})`,
+          dealname: `Seller Lead - ${lead.brandName} (${lead.category})`,
           amount: '0',
           dealstage: 'qualifiedtobuy',
           pipeline: 'default',

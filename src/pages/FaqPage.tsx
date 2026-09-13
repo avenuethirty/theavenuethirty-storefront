@@ -4,6 +4,11 @@ import { Link } from 'react-router-dom';
 
 const FAQS = [
   {
+    question: 'Who sells on The Avenue Thirty?',
+    answer:
+      'We are a marketplace. Every seller is verified by us before they can list. Circle Woman is our first seller, and more partners are joining the avenue.',
+  },
+  {
     question: 'How long does delivery take?',
     answer: 'Standard delivery is 3-5 business days within Pakistan. Shipping is Rs. 240, and free on orders over Rs. 5,000.',
   },
@@ -42,7 +47,7 @@ export const FaqPage: React.FC = () => {
         <div className="max-w-3xl mx-auto px-6 pt-12 pb-24">
           <h1 className="text-3xl md:text-4xl font-light tracking-tight mb-4">FAQs</h1>
           <p className="text-sm text-neutral-600 leading-relaxed mb-10">
-            Quick answers about orders, delivery, and returns. Can't find what you need? Contact us — we reply fast.
+            Quick answers about orders, delivery, and returns. Can't find what you need? Contact us, we reply fast.
           </p>
 
           <div>

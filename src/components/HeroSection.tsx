@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowUp, ShieldCheck, Banknote, MessagesSquare } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HeroSectionProps {
@@ -7,19 +7,22 @@ interface HeroSectionProps {
 }
 
 const TYPEWRITER_PROMPTS = [
-  "Is this mole or spot normal?",
-  "How do I treat hormonal cystic breakouts?",
-  "Is my skin barrier damaged and sensitive?",
-  "Prescription recommendations for dark spots & melasma...",
-  "How to treat sudden redness and rosacea flare-ups?",
-  "How long does acne treatment with prescription Tretinoin take?"
+  'What jewellery do you recommend?',
+  'Show me skincare under Rs 2,000',
+  'Gift ideas for kids?',
+  'Which bags are trending?',
+  'What is new on the avenue?'
+];
+
+const TRUST_BADGES = [
+  { label: 'Verified sellers', icon: ShieldCheck },
+  { label: 'Cash on Delivery', icon: Banknote },
+  { label: 'Platform-backed support', icon: MessagesSquare },
 ];
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
   const [query, setQuery] = useState('');
-  const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Typewriter Animation State
   const [placeholderText, setPlaceholderText] = useState('');
@@ -53,31 +56,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const defaultText = placeholderText || 'Is this mole normal? Please analyze my skin condition.';
-    const finalMsg = selectedImageName
-      ? `[Photo Analysis: ${selectedImageName}] ${query || defaultText}`
-      : query.trim() || defaultText;
+    const finalMsg = query.trim() || placeholderText || 'What do you recommend?';
     onStartAiChat(finalMsg);
-  };
-
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedImageName(file.name);
-    }
   };
 
   return (
     <section id="hero" className="relative w-full min-h-[85vh] sm:min-h-screen pt-24 pb-10 sm:pb-16 flex flex-col justify-end items-center overflow-hidden bg-neutral-900 text-white">
-      {/* Background Image Layer - Sunlit living room with natural garden window */}
+      {/* Background Image Layer */}
       <div className="absolute inset-0 z-0">
         <img
           src="https://res.cloudinary.com/mpdpiwxv/image/upload/f_auto,q_auto/Woman_with_glossy_skin_framing_202608021538_tqopqh"
-          alt="Woman with glossy skin framing face"
+          alt="Lifestyle shopping backdrop"
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center scale-105"
         />
@@ -85,27 +74,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
       </div>
 
-      {/* Hidden File Input for Image Analysis */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
-
       {/* Main Hero Center Content */}
       <div className="relative z-10 w-full max-w-xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center space-y-6 pt-6">
-        
-        {/* Main Headline - Welcoming & Empathetic */}
+
+        {/* Main Headline */}
         <motion.h1
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           className="text-[34px] font-medium tracking-tight text-white drop-shadow-md font-sans"
         >
-          How is your skin feeling today?
+          Your Avenue to Confident Living
         </motion.h1>
+
+        {/* Subline */}
+        <motion.p
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
+          className="text-sm sm:text-base text-white/85 max-w-md leading-relaxed"
+        >
+          Fashion, beauty, and more from verified sellers across Pakistan. Cash on Delivery.
+        </motion.p>
 
         {/* Floating AI Prompt Box with Animated Typing Effect */}
         <motion.div
@@ -128,28 +118,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
                   handleSubmit();
                 }
               }}
-              placeholder={query ? "" : `${placeholderText}${isFocused ? "" : "│"}`}
+              placeholder={query ? '' : `${placeholderText}${isFocused ? '' : '│'}`}
               className="w-full bg-transparent text-[#1A1A1A] placeholder:text-neutral-500 text-sm sm:text-base font-normal resize-none focus:outline-none px-1 py-1"
             />
           </form>
 
-          {/* Selected Image File Badge */}
-          {selectedImageName && (
-            <div className="mb-2 self-start flex items-center gap-1.5 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] px-2.5 py-1 rounded-full animate-fade-in">
-              <Upload className="w-3 h-3 text-amber-800" />
-              <span className="truncate max-w-[200px] font-medium">{selectedImageName}</span>
-              <button
-                type="button"
-                onClick={() => setSelectedImageName(null)}
-                className="ml-1 text-amber-900 font-bold hover:text-black cursor-pointer"
-              >
-                ×
-              </button>
-            </div>
-          )}
-
           {/* Bottom Action Bar inside prompt card */}
-          <div className="flex items-center justify-end mt-1">
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-[10px] text-neutral-400 uppercase tracking-widest pl-1">
+              Ask our shopping assistant
+            </span>
             <button
               type="button"
               onClick={() => handleSubmit()}
@@ -159,6 +137,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
               <ArrowUp className="w-4 h-4" />
             </button>
           </div>
+        </motion.div>
+
+        {/* Trust Badge Row */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.32 }}
+          className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
+        >
+          {TRUST_BADGES.map((badge) => {
+            const Icon = badge.icon;
+            return (
+              <span key={badge.label} className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-white/80">
+                <Icon className="w-3.5 h-3.5" />
+                {badge.label}
+              </span>
+            );
+          })}
         </motion.div>
 
       </div>

@@ -21,14 +21,14 @@ const BENEFITS = [
   },
   {
     title: 'You keep control',
-    description: 'Your pricing, your inventory — you decide what to sell and when.',
+    description: 'Your pricing, your inventory. You decide what to sell and when.',
   },
 ];
 
 const STEPS = [
   'Tell us about your brand using the form below.',
-  'We review and list your products — photos and pricing, done for you.',
-  'You get orders — we coordinate delivery and payment.',
+  'We review and list your products, photos and pricing, done for you.',
+  'You get orders, and we coordinate delivery and payment.',
 ];
 
 type FormState = {
@@ -271,7 +271,7 @@ export const SellPage: React.FC = () => {
                 <textarea
                   value={form.message}
                   onChange={update('message')}
-                  placeholder="Anything else we should know — product range, links, photos?"
+                  placeholder="Anything else we should know: product range, links, photos?"
                   rows={4}
                   className={`${inputClass} resize-none`}
                 />
@@ -304,7 +304,7 @@ export const SellPage: React.FC = () => {
 
         <section className="max-w-xl mx-auto px-6 py-16 pb-24 border-t border-neutral-200 text-center">
           <h2 className="text-2xl md:text-3xl font-light tracking-tight mb-3">Prefer to talk first?</h2>
-          <p className="text-xs text-neutral-500 mb-8">Reach us directly — we're happy to answer questions.</p>
+          <p className="text-xs text-neutral-500 mb-8">Reach us directly, we're happy to answer questions.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
               href={WHATSAPP_SELL_URL}

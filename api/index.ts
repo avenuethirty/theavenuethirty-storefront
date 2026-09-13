@@ -434,7 +434,7 @@ async function createSellerLead(lead: { brandName: string; contactName: string; 
       headers,
       body: JSON.stringify({
         properties: {
-          dealname: `Seller Lead — ${lead.brandName} (${lead.category})`,
+          dealname: `Seller Lead - ${lead.brandName} (${lead.category})`,
           amount: '0',
           dealstage: 'qualifiedtobuy',
           pipeline: 'default',

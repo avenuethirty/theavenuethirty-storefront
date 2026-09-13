@@ -35,7 +35,7 @@ export function buildWhatsAppLink({
   const itemLines = items
     .map(
       (item) =>
-        `• ${item.product.name} x${item.quantity} — ${SHOP_CONFIG.localization.currencySymbol}${(item.product.priceMonthly * item.quantity).toFixed(2)}`
+        `• ${item.product.name} x${item.quantity}: ${SHOP_CONFIG.localization.currencySymbol}${(item.product.priceMonthly * item.quantity).toFixed(2)}`
     )
     .join("%0A");
 

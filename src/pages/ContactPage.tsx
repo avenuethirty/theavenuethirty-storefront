@@ -54,7 +54,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onOpenConsultation }) 
         <section className="max-w-3xl mx-auto px-6 pt-12 pb-16">
           <h1 className="text-3xl md:text-4xl font-light tracking-tight mb-4">We're here to help</h1>
           <p className="text-sm text-neutral-600 leading-relaxed mb-6">
-            Orders, delivery, products, selling on The Avenue Thirty — whatever it is, pick the fastest way to reach us.
+            Orders, delivery, products, selling on The Avenue Thirty, whatever it is, pick the fastest way to reach us.
           </p>
           <span className="inline-block text-[10px] uppercase font-bold tracking-[0.25em] text-neutral-500 border border-neutral-200 rounded-full px-4 py-2">
             Mon - Fri · 9:00 AM - 6:00 PM PKT
@@ -72,7 +72,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onOpenConsultation }) 
               <MessageCircle className="w-6 h-6 mb-4" />
               <h3 className="text-sm font-semibold mb-1">WhatsApp us</h3>
               <p className="text-xs text-white/60 mb-1">+92 333 1458843</p>
-              <p className="text-xs text-neutral-400 mb-5">Fastest — order questions &amp; updates</p>
+              <p className="text-xs text-neutral-400 mb-5">Fastest, for order questions &amp; updates</p>
               <span className="mt-auto text-[10px] uppercase font-bold tracking-[0.25em] text-white/70 flex items-center gap-1.5">
                 Chat now <ArrowRight className="w-3 h-3" />
               </span>
@@ -85,7 +85,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onOpenConsultation }) 
               <Sparkles className="w-6 h-6 mb-4 text-amber-900" />
               <h3 className="text-sm font-semibold mb-1">Ask our AI assistant</h3>
               <p className="text-xs text-neutral-500 mb-1">Shopping assistant</p>
-              <p className="text-xs text-neutral-500 mb-5">Instant — product &amp; recommendation questions</p>
+              <p className="text-xs text-neutral-500 mb-5">Instant, for product &amp; recommendation questions</p>
               <span className="mt-auto text-[10px] uppercase font-bold tracking-[0.25em] text-neutral-500 flex items-center gap-1.5">
                 Start chat <ArrowRight className="w-3 h-3" />
               </span>
