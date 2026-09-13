@@ -8,8 +8,30 @@ interface CategoryCardsSectionProps {
   products: Product[];
 }
 
-// Desktop column classes for the configurable grid (SHOP_CONFIG.categoryGrid.columns)
+// Responsive column classes for the configurable grid (SHOP_CONFIG.categoryGrid.columns)
+// Tailwind v4 scans source for static class strings, so values map to static classes.
 const COLUMN_CLASSES: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+  5: 'grid-cols-5',
+  6: 'grid-cols-6',
+  8: 'grid-cols-8',
+};
+
+const TABLET_COLUMN_CLASSES: Record<number, string> = {
+  1: 'sm:grid-cols-1',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-4',
+  5: 'sm:grid-cols-5',
+  6: 'sm:grid-cols-6',
+  8: 'sm:grid-cols-8',
+};
+
+const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
+  2: 'lg:grid-cols-2',
   3: 'lg:grid-cols-3',
   4: 'lg:grid-cols-4',
   5: 'lg:grid-cols-5',
@@ -28,8 +50,12 @@ export const CategoryCardsSection: React.FC<CategoryCardsSectionProps> = ({ prod
     }
   }
 
-  const columns = SHOP_CONFIG.categoryGrid.columns;
-  const columnClass = COLUMN_CLASSES[columns] || COLUMN_CLASSES[4];
+  const { mobile, tablet, desktop } = SHOP_CONFIG.categoryGrid.columns;
+  const rows = SHOP_CONFIG.categoryGrid.rows;
+  const mobileClass = COLUMN_CLASSES[mobile] || COLUMN_CLASSES[1];
+  const tabletClass = TABLET_COLUMN_CLASSES[tablet] || TABLET_COLUMN_CLASSES[2];
+  const desktopClass = DESKTOP_COLUMN_CLASSES[desktop] || DESKTOP_COLUMN_CLASSES[4];
+  const visibleCategories = SHOP_CONFIG.categories.slice(0, Math.max(mobile, tablet, desktop) * rows);
 
   return (
     <section id="categories" className="py-20 sm:py-28 w-full text-[#1A1A1A] bg-[#FAFAF9]">
@@ -42,8 +68,8 @@ export const CategoryCardsSection: React.FC<CategoryCardsSectionProps> = ({ prod
         </h2>
       </div>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${columnClass} w-full gap-[10px] px-[10px]`}>
-        {SHOP_CONFIG.categories.map((cat, idx) => {
+      <div className={`grid ${mobileClass} ${tabletClass} ${desktopClass} w-full gap-[10px] px-[10px]`}>
+        {visibleCategories.map((cat, idx) => {
           const count = counts[cat.slug] || 0;
           const isLive = count > 0;
           // Custom image from config wins; fall back to the first catalogue

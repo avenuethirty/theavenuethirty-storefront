@@ -8,7 +8,6 @@ import { SellersSection } from '../components/SellersSection';
 import { CtaSection } from '../components/CtaSection';
 import { SystemApproachSection } from '../components/SystemApproachSection';
 import { AboutUsSection } from '../components/AboutUsSection';
-import { ProductGrid } from '../components/ProductGrid';
 import { TikTokTestimonials } from '../components/TikTokTestimonials';
 import { CommunityMarquee } from '../components/CommunityMarquee';
 import { Product } from '../types';
@@ -26,29 +25,22 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const catalogue = products || [];
 
-  // Must-Have Styles: products tagged "Featured", fallback to first 8
-  const featured = catalogue.filter((p) => p.collections?.includes('Featured'));
-  const mustHave = (featured.length > 0 ? featured : catalogue).slice(0, 8);
+  // Carousel sections are driven by catalogue status labels
+  // (Collections column on the sheet): 'Featured', 'Best Seller',
+  // 'Trending', 'Sale', 'New Arrival', 'Must-Have Styles', 'Recommended'.
+  // Sections with no matching products are hidden entirely.
+  const byStatus = (status: string) =>
+    catalogue.filter((p) =>
+      p.collections?.some((c) => c.toLowerCase() === status.toLowerCase())
+    );
 
-  // On Sale: discounted items, deepest discount first
-  const onSale = catalogue
-    .filter((p) => p.originalPrice && p.originalPrice > p.priceMonthly)
-    .sort(
-      (a, b) =>
-        (b.originalPrice! - b.priceMonthly) / b.originalPrice! -
-        (a.originalPrice! - a.priceMonthly) / a.originalPrice!
-    )
-    .slice(0, 8);
-
-  // Recommended: the premium pick from each category, up to 4
-  const bestByCategory = new Map<string, Product>();
-  for (const product of catalogue) {
-    const current = bestByCategory.get(product.category);
-    if (!current || product.priceMonthly > current.priceMonthly) {
-      bestByCategory.set(product.category, product);
-    }
-  }
-  const recommended = Array.from(bestByCategory.values()).slice(0, 4);
+  const mustHave = byStatus('Must-Have Styles');
+  const bestSeller = byStatus('Best Seller');
+  const featured = byStatus('Featured');
+  const onSale = byStatus('Sale');
+  const recommended = byStatus('Recommended');
+  const trending = byStatus('Trending');
+  const newArrival = byStatus('New Arrival');
 
   return (
     <main className="relative w-full">
@@ -64,31 +56,51 @@ export const HomePage: React.FC<HomePageProps> = ({
         <ProductRail
           id="must-have"
           title="Must-Have Styles"
-          subtitle="Every product on the avenue is picked from verified sellers and presented honestly. Real images, clear prices, no surprises. Start with the pieces our shoppers reach for first."
           products={mustHave}
+          onAddToCart={onAddToCart}
+        />
+
+        <ProductRail
+          id="best-seller"
+          title="Best Seller"
+          products={bestSeller}
+          onAddToCart={onAddToCart}
+        />
+
+        <ProductRail
+          id="featured"
+          title="Featured"
+          products={featured}
           onAddToCart={onAddToCart}
         />
 
         <ProductRail
           id="on-sale"
           title="On Sale"
-          subtitle="Real discounts on real products. Pay when it arrives."
           products={onSale}
           onAddToCart={onAddToCart}
         />
 
         <TypeCardsSection products={catalogue} />
 
-        <ProductGrid
-          products={catalogue}
+        <ProductRail
+          id="recommended"
+          title="Recommended"
+          products={recommended}
           onAddToCart={onAddToCart}
         />
 
         <ProductRail
-          id="recommended"
-          title="Recommended"
-          subtitle="A confident pick from every shop on the avenue."
-          products={recommended}
+          id="trending"
+          title="Trending"
+          products={trending}
+          onAddToCart={onAddToCart}
+        />
+
+        <ProductRail
+          id="new-arrival"
+          title="New Arrival"
+          products={newArrival}
           onAddToCart={onAddToCart}
         />
 

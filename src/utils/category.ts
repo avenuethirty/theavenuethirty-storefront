@@ -1,3 +1,5 @@
+import { SHOP_CONFIG } from "../config/shop";
+
 export type CategoryKey = "clothing_apparel" | "skincare_beauty" | "bags_backpacks" | "accessories" | "toys_kids";
 
 export interface CategoryInfo {
@@ -82,5 +84,12 @@ export function getCategoryBySlug(slug: string): CategoryInfo | undefined {
 }
 
 export function getCategoryLabel(slug: string): string {
-  return getCategoryBySlug(slug)?.label || slug;
+  const configured = SHOP_CONFIG.categories.find(
+    (c) => c.slug === slug
+  );
+  return (
+    configured?.name ||
+    CATEGORIES.find((c) => c.key === slug)?.label ||
+    slug
+  );
 }

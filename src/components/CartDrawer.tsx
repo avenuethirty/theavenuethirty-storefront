@@ -229,19 +229,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   />
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
                         <h4 className="font-bold text-sm text-[#111110] truncate">
                           {item.customFormulaName || item.product.name}
                         </h4>
-                        <span className="text-[10px] uppercase font-bold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-full">
-                          {item.product.category}
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200 truncate inline-block max-w-full align-middle">
+                          {item.product.tagline || item.product.category}
                         </span>
                       </div>
 
                       <button
                         onClick={() => onRemoveItem(item.product.id)}
-                        className="text-neutral-400 hover:text-rose-600 transition-colors p-1"
+                        className="text-neutral-400 hover:text-rose-600 transition-colors p-1 shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

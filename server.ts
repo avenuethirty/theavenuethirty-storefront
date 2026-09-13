@@ -202,7 +202,9 @@ function buildCatalogSnippet(products: any[], limitPerCategory = 10): string {
       .slice(0, limitPerCategory)
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const names = sorted.map((p) => p.name).filter(Boolean);
+    const names = sorted
+      .filter((p) => p.name)
+      .map((p) => (p.priceMonthly ? `${p.name} (Rs. ${p.priceMonthly})` : p.name));
     if (names.length > 0) {
       lines.push(`${label}: ${names.join(', ')}`);
     }
@@ -282,6 +284,7 @@ Rules:
 - If the user asks about a category, only recommend products from that category.
 - If the user asks "What jewellery you've got?", reply with 1 sentence and recommend 1-3 matching products.
 - If the user asks about skincare, only recommend skincare products.
+- If the user gives a budget (e.g. "under Rs 2,000"), only recommend products at or below that price using the prices in the catalog.
 - Never mix categories in one answer.
 - Do NOT mention products that are not in the catalog.
 - Return JSON with these keys: reply (string), recommended_product_ids (array of exact product names from the catalog).

@@ -2,7 +2,14 @@ export const SHOP_CONFIG = {
   name: "The Avenue Thirty",
   domain: "theavenuethirty.com",
 
-  // Contact & Social
+  // Homepage hero section
+  hero: {
+    title: "Your Avenue to Confident Living",
+    image: "https://i.postimg.cc/5tJ5zYT3/herobg-01.webp",
+    video: "", // background video; falls back to image if empty or fails to load
+  },
+
+  // Contact
   whatsapp: {
     number: "923331458843",
     defaultMessage: "Hi, I would like to inquire about an order from The Avenue Thirty.",
@@ -30,19 +37,60 @@ export const SHOP_CONFIG = {
   },
 
   // Allowed Main Categories for Top Navigation & Filters
+  // On DB Product Categories Dropdown should match with the slug to display the products on storefront.
   categories: [
     //{ name: "Clothing & Apparel", slug: "clothing_apparel" },
-    { name: "Skincare", slug: "skincare_beauty", image: "https://i.postimg.cc/Rh0rgYH1/skincare.webp" },
-    { name: "Bags", slug: "bags_backpacks", image: "https://i.postimg.cc/Xq92cc2G/bags.webp" },
-    { name: "Jewellery", slug: "accessories", image: "https://i.postimg.cc/vZGQn0Ph/jewellery.webp" },
-    { name: "Kids", slug: "toys_kids", image: "https://i.postimg.cc/90z9cW9T/toys.webp" },
+    { name: "Skincare", slug: "skincare", image: "https://i.postimg.cc/Rh0rgYH1/skincare.webp" },
+    { name: "Bags", slug: "bags", image: "https://i.postimg.cc/Xq92cc2G/bags.webp" },
+    { name: "Jewellery", slug: "jewellery", image: "https://i.postimg.cc/vZGQn0Ph/jewellery.webp" },
+    { name: "Kids", slug: "toys", image: "https://i.postimg.cc/90z9cW9T/toys.webp" },
   ],
 
-  // Homepage "Walk the avenue" categories grid
+  // Homepage categories grid
   categoryGrid: {
-    columns: 4, // desktop column count: 3, 4, 5, 6, or 8
+    columns: {
+      mobile: 2, // cards per row on mobile (< 640px)
+      tablet: 2, // cards per row on tablet (>= 640px)
+      desktop: 4, // cards per row on desktop (>= 1024px)
+    },
+    rows: 1, // rows to display: shows first (columns * rows) categories
   },
 
+  // Homepage carousel grids, keyed by section id.
+  // Status labels come from the catalogue (Collections column on the sheet):
+  // 'Featured', 'Best Seller', 'Trending', 'Sale', 'New Arrival', 'Must-Have Styles', 'Recommended'.
+  carouselGrid: {
+    "must-have": {
+      columns: { mobile: 2, tablet: 2, desktop: 3 },
+      rows: 1,
+    },
+    "best-seller": {
+      columns: { mobile: 2, tablet: 2, desktop: 4 },
+      rows: 2,
+    },
+    featured: {
+      columns: { mobile: 2, tablet: 2, desktop: 4 },
+      rows: 2,
+    },
+    "on-sale": {
+      columns: { mobile: 2, tablet: 2, desktop: 8 },
+      rows: 2,
+    },
+    recommended: {
+      columns: { mobile: 2, tablet: 2, desktop: 5 },
+      rows: 2,
+    },
+    trending: {
+      columns: { mobile: 2, tablet: 2, desktop: 4 },
+      rows: 2,
+    },
+    "new-arrival": {
+      columns: { mobile: 2, tablet: 2, desktop: 4 },
+      rows: 2,
+    },
+  },
+
+ // Social Media Links
   social: {
     instagram: "https://instagram.com/theavenuethirty",
     tiktok: "https://tiktok.com/@theavenuethirty",

@@ -262,10 +262,16 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     setIsLoading(true);
 
     try {
+      // Send prior conversation (everything except the current user message)
+      // so the assistant keeps context across follow-up messages.
+      const history = currentHistory
+        .slice(0, -1)
+        .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userQuery }),
+        body: JSON.stringify({ message: userQuery, history }),
       });
 
       const data = await res.json();
@@ -394,7 +400,9 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
     setInput('');
     setSelectedImageName(null);
     setSelectedImagePreview(null);
-    setSidebarOpen(false);
+    if (!isDesktop) {
+      setSidebarOpen(false);
+    }
   };
 
   const handleDeleteThread = (threadId: string) => {
@@ -428,7 +436,9 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
 
   const handleQuickActionClick = (query: string) => {
     handleSend(undefined, query);
-    setSidebarOpen(false);
+    if (!isDesktop) {
+      setSidebarOpen(false);
+    }
   };
 
   const handleThreadSwitch = (threadId: string) => {

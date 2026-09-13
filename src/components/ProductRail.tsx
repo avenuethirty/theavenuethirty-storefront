@@ -11,7 +11,38 @@ interface ProductRailProps {
   onAddToCart: (product: Product) => void;
 }
 
-const ITEMS_PER_PAGE = 4;
+// Responsive grid class lookup tables (Tailwind v4 needs static class strings).
+const COLUMN_CLASSES: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+  5: 'grid-cols-5',
+  6: 'grid-cols-6',
+  8: 'grid-cols-8',
+};
+
+const TABLET_COLUMN_CLASSES: Record<number, string> = {
+  1: 'sm:grid-cols-1',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-4',
+  5: 'sm:grid-cols-5',
+  6: 'sm:grid-cols-6',
+  8: 'sm:grid-cols-8',
+};
+
+const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
+  1: 'lg:grid-cols-1',
+  2: 'lg:grid-cols-2',
+  3: 'lg:grid-cols-3',
+  4: 'lg:grid-cols-4',
+  5: 'lg:grid-cols-5',
+  6: 'lg:grid-cols-6',
+  8: 'lg:grid-cols-8',
+};
+
+const DEFAULT_GRID = { mobile: 1, tablet: 2, desktop: 4 };
 
 export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, products, onAddToCart }) => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -19,11 +50,19 @@ export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, p
 
   if (!products || products.length === 0) return null;
 
-  const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+  // Grid settings for this carousel section; falls back to defaults.
+  const grid = (id && SHOP_CONFIG.carouselGrid[id as keyof typeof SHOP_CONFIG.carouselGrid]) || undefined;
+  const columns = grid?.columns || DEFAULT_GRID;
+  const rows = grid?.rows || 1;
+
+  // Items per page = cards on screen at once (columns * rows at the widest breakpoint).
+  const itemsPerPage = Math.max(columns.mobile, columns.tablet, columns.desktop) * rows;
+
+  const totalPages = Math.ceil(products.length / itemsPerPage);
 
   const displayedProducts = products.slice(
-    currentPage * ITEMS_PER_PAGE,
-    (currentPage + 1) * ITEMS_PER_PAGE
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
   );
 
   const handleNext = () => {
@@ -44,36 +83,36 @@ export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, p
     <section id={id} className="py-16 md:py-24 bg-[#FAFAF9] text-[#1A1A1A] w-full">
       <div className="w-full px-[10px]">
 
-        {/* Section Header */}
-        <div className="mb-12">
-          <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-[#1A1A1A] font-sans">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="mt-4 text-sm sm:text-base text-[#5E5E5E] max-w-xl leading-relaxed">
-              {subtitle}
-            </p>
-          )}
-        </div>
+        {/* Section Header - keeps 24px gap to cards when nav controls are hidden */}
+        <h2 className={`text-3xl sm:text-5xl font-light tracking-tight text-[#1A1A1A] font-sans ${totalPages > 1 ? '' : 'mb-6'}`}>
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="mt-4 text-sm sm:text-base text-[#5E5E5E] max-w-xl leading-relaxed">
+            {subtitle}
+          </p>
+        )}
 
-        {/* Navigation Controls (PREVIOUS / NEXT top right) */}
-        <div className="flex items-center justify-end gap-6 mb-6">
-          <button
-            onClick={handlePrev}
-            className="text-xs tracking-widest font-sans uppercase text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors cursor-pointer select-none"
-          >
-            Previous
-          </button>
-          <button
-            onClick={handleNext}
-            className="text-xs tracking-widest font-sans uppercase text-[#1A1A1A] font-semibold hover:opacity-70 transition-opacity cursor-pointer select-none"
-          >
-            Next
-          </button>
-        </div>
+        {/* Navigation Controls (PREVIOUS / NEXT top right) - hidden when all items fit on one page */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end gap-6 mb-6">
+            <button
+              onClick={handlePrev}
+              className="text-xs tracking-widest font-sans uppercase text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors cursor-pointer select-none"
+            >
+              Previous
+            </button>
+            <button
+              onClick={handleNext}
+              className="text-xs tracking-widest font-sans uppercase text-[#1A1A1A] font-semibold hover:opacity-70 transition-opacity cursor-pointer select-none"
+            >
+              Next
+            </button>
+          </div>
+        )}
 
-        {/* Product Cards 4-Column Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[10px]">
+        {/* Product Cards Grid (columns/rows from SHOP_CONFIG.carouselGrid) */}
+        <div className={`grid ${COLUMN_CLASSES[columns.mobile] || COLUMN_CLASSES[1]} ${TABLET_COLUMN_CLASSES[columns.tablet] || TABLET_COLUMN_CLASSES[2]} ${DESKTOP_COLUMN_CLASSES[columns.desktop] || DESKTOP_COLUMN_CLASSES[4]} gap-[10px]`}>
           {displayedProducts.map((product) => {
             const isAdded = addedProductId === product.id;
 

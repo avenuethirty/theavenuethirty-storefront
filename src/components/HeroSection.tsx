@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUp, ShieldCheck, Banknote, MessagesSquare } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { motion } from 'motion/react';
+import { SHOP_CONFIG } from '../config/shop';
 
 interface HeroSectionProps {
   onStartAiChat: (query?: string) => void;
@@ -14,15 +15,16 @@ const TYPEWRITER_PROMPTS = [
   'What is new on the avenue?'
 ];
 
-const TRUST_BADGES = [
-  { label: 'Verified sellers', icon: ShieldCheck },
-  { label: 'Cash on Delivery', icon: Banknote },
-  { label: 'Platform-backed support', icon: MessagesSquare },
+const QUICK_ACTIONS = [
+  'Skincare under Rs 2,000',
+  'Jewellery picks',
+  'Gifts for kids',
 ];
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
 
   // Typewriter Animation State
   const [placeholderText, setPlaceholderText] = useState('');
@@ -62,14 +64,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
 
   return (
     <section id="hero" className="relative w-full min-h-[85vh] sm:min-h-screen pt-24 pb-10 sm:pb-16 flex flex-col justify-end items-center overflow-hidden bg-neutral-900 text-white">
-      {/* Background Image Layer */}
+      {/* Background Media Layer: video wins, image is fallback */}
       <div className="absolute inset-0 z-0">
-        <img
-          src="https://res.cloudinary.com/mpdpiwxv/image/upload/f_auto,q_auto/Woman_with_glossy_skin_framing_202608021538_tqopqh"
-          alt="Lifestyle shopping backdrop"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105"
-        />
+        {SHOP_CONFIG.hero.video && !videoFailed ? (
+          <video
+            src={SHOP_CONFIG.hero.video}
+            autoPlay
+            muted
+            loop
+            playsInline
+            onError={() => setVideoFailed(true)}
+            className="w-full h-full object-cover object-center"
+          />
+        ) : (
+          <img
+            src={SHOP_CONFIG.hero.image}
+            alt={SHOP_CONFIG.hero.title}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover object-center scale-105"
+          />
+        )}
         {/* Dark Gradient Overlay only at the bottom for text contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
       </div>
@@ -84,18 +98,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           className="text-[34px] font-medium tracking-tight text-white drop-shadow-md font-sans"
         >
-          Your Avenue to Confident Living
+          {SHOP_CONFIG.hero.title}
         </motion.h1>
-
-        {/* Subline */}
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
-          className="text-sm sm:text-base text-white/85 max-w-md leading-relaxed"
-        >
-          Fashion, beauty, and more from verified sellers across Pakistan. Cash on Delivery.
-        </motion.p>
 
         {/* Floating AI Prompt Box with Animated Typing Effect */}
         <motion.div
@@ -124,37 +128,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartAiChat }) => {
           </form>
 
           {/* Bottom Action Bar inside prompt card */}
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-[10px] text-neutral-400 uppercase tracking-widest pl-1">
-              Ask our shopping assistant
-            </span>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              {QUICK_ACTIONS.map((action) => (
+                <button
+                  key={action}
+                  type="button"
+                  onClick={() => onStartAiChat(action)}
+                  className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 bg-neutral-100 hover:bg-neutral-200 hover:text-neutral-900 px-2 py-0.5 rounded-full border border-neutral-200 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => handleSubmit()}
-              className="w-9 h-9 rounded-full bg-[#525252] hover:bg-[#1A1A1A] text-white flex items-center justify-center shadow transition-all cursor-pointer active:scale-95"
+              className="w-9 h-9 rounded-full bg-[#525252] hover:bg-[#1A1A1A] text-white flex items-center justify-center shadow transition-all cursor-pointer active:scale-95 shrink-0"
               title="Send query"
             >
               <ArrowUp className="w-4 h-4" />
             </button>
           </div>
-        </motion.div>
-
-        {/* Trust Badge Row */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.32 }}
-          className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
-        >
-          {TRUST_BADGES.map((badge) => {
-            const Icon = badge.icon;
-            return (
-              <span key={badge.label} className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-white/80">
-                <Icon className="w-3.5 h-3.5" />
-                {badge.label}
-              </span>
-            );
-          })}
         </motion.div>
 
       </div>
