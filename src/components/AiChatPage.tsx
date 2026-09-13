@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { compressImage } from '../utils/imageCompressor';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Product } from '../types';
 import { PRODUCTS } from '../data/mockData';
 import { SHOP_CONFIG } from '../config/shop';
@@ -171,6 +172,7 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -438,6 +440,9 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
       setMessages(thread.messages);
     }
     localStorage.setItem(STORAGE_KEY_ACTIVE, threadId);
+    if (!isDesktop) {
+      setSidebarOpen(false);
+    }
   };
 
   const handleImageClick = () => {
@@ -481,14 +486,33 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
         className="hidden"
       />
 
+      {/* Mobile: backdrop overlay — click to close (same pattern as CartDrawer) */}
+      <AnimatePresence>
+        {sidebarOpen && !isDesktop && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 z-30 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Desktop: push sidebar (unchanged) / Mobile: overlay drawer via x-transform */}
       <AnimatePresence initial={false}>
         {sidebarOpen && (
           <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
+            initial={isDesktop ? { width: 0, opacity: 0 } : { x: '-100%' }}
+            animate={isDesktop ? { width: 280, opacity: 1 } : { x: 0 }}
+            exit={isDesktop ? { width: 0, opacity: 0 } : { x: '-100%' }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="h-full bg-[#1A1A1A] text-white flex flex-col justify-between border-r border-white/10 shrink-0 relative z-20 overflow-hidden"
+            className={
+              isDesktop
+                ? 'h-full bg-[#1A1A1A] text-white flex flex-col justify-between border-r border-white/10 shrink-0 relative z-20 overflow-hidden'
+                : 'absolute inset-y-0 left-0 z-40 h-full w-[78%] max-w-[280px] bg-[#1A1A1A] text-white flex flex-col justify-between border-r border-white/10 shadow-2xl'
+            }
           >
             <div className="p-4 flex flex-col gap-4">
               <button
