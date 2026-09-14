@@ -40,7 +40,7 @@ Defined in `src/utils/category.ts` — 5 HubSpot-aligned keys: `clothing_apparel
 - `DISABLE_HMR=true` — disables Vite HMR and file watching in `vite.config.ts`. **Do not remove** — prevents flickering during agent edits.
 - `APP_URL` — optional, injected by AI Studio.
 - `.env` and `.env.local` contain secrets (including a real GROQ key and HubSpot token) — do not expose these. `.env.example` is tracked in git.
-- Non-sensitive store settings live in `src/config/shop.ts` (`SHOP_CONFIG`).
+- Non-sensitive store settings live in `src/config/shop.ts` (`SHOP_CONFIG`), including `typeSections` (per-category "Shop by type" homepage sections: format cards/pills, grid, limit, and per-type image/label/order overrides keyed by type slug; falls back to the type's first product image and count-desc order).
 
 ## Toolchain quirksks
 

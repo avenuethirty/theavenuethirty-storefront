@@ -1,3 +1,12 @@
+export interface TypeSectionConfig {
+  category: string;
+  title?: string;
+  format: "cards" | "pills";
+  grid?: { mobile: number; tablet: number; desktop: number };
+  limit?: number;
+  types: Record<string, { image?: string; label?: string; order?: number }>;
+}
+
 export const SHOP_CONFIG = {
   name: "The Avenue Thirty",
   domain: "theavenuethirty.com",
@@ -56,6 +65,42 @@ export const SHOP_CONFIG = {
     rows: 1, // rows to display: shows first (columns * rows) categories
   },
 
+  // Homepage "Shop by type" sections, one per category. Array order is the
+  // homepage order for these sections. Each section renders the category's
+  // types (the sheet's Type column) as image cards or pill links that deep-link
+  // to /product/:category/:typeSlug. Types sort by product count desc unless
+  // pinned via `order`. Entries with no matching products are skipped.
+  // Per-type overrides are keyed by type slug (slugified Type column value):
+  //   image — custom card image (falls back to the type's first product image)
+  //   label — display label override (falls back to the sheet tagline)
+  //   order — manual position pin (1 = first); omit for count-desc order
+  typeSections: [
+    {
+      category: "bags",
+      title: "Find your bag",
+      format: "cards",
+      grid: { mobile: 2, tablet: 3, desktop: 6 },
+      limit: 6,
+      types: {
+        handbag: { image: "https://i.postimg.cc/3x3KGtL9/bags-02.webp", label: "Designer Handbags", order: 1 },
+        "crossbody-bag": { image: "https://i.postimg.cc/v8qYtb6h/crossbody-bag.webp", label: "Crossbody Bag",},
+      },
+    },
+    {
+      category: "jewellery",
+      format: "cards",
+      grid: { mobile: 2, tablet: 3, desktop: 6 },
+      limit: 6,
+      types: {},
+    },
+    {
+      category: "toys",
+      format: "pills",
+      limit: 8,
+      types: {},
+    },
+  ] as TypeSectionConfig[],
+ 
   // Homepage carousel grids, keyed by section id.
   // Status labels come from the catalogue (Collections column on the sheet):
   // 'Featured', 'Best Seller', 'Trending', 'Sale', 'New Arrival', 'Must-Have Styles', 'Recommended'.

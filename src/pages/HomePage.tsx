@@ -2,7 +2,7 @@ import React from 'react';
 import { HeroSection } from '../components/HeroSection';
 import { CategoryCardsSection } from '../components/CategoryCardsSection';
 import { ProductRail } from '../components/ProductRail';
-import { TypeCardsSection } from '../components/TypeCardsSection';
+import { TypeSection } from '../components/TypeSection';
 import { HowItWorks } from '../components/HowItWorks';
 import { CtaSection } from '../components/CtaSection';
 import { SystemApproachSection } from '../components/SystemApproachSection';
@@ -65,12 +65,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           onAddToCart={onAddToCart}
         />
 
-        <ProductRail
-          id="featured"
-          title="Featured"
-          products={featured}
-          onAddToCart={onAddToCart}
-        />
+        <TypeSection category="bags" products={catalogue} />
 
         <ProductRail
           id="on-sale"
@@ -79,14 +74,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           onAddToCart={onAddToCart}
         />
 
-        <TypeCardsSection products={catalogue} />
-
-        <ProductRail
-          id="recommended"
-          title="Recommended"
-          products={recommended}
-          onAddToCart={onAddToCart}
-        />
+        <TypeSection category="jewellery" products={catalogue} />
 
         <ProductRail
           id="trending"
@@ -96,9 +84,25 @@ export const HomePage: React.FC<HomePageProps> = ({
         />
 
         <ProductRail
+          id="featured"
+          title="Featured"
+          products={featured}
+          onAddToCart={onAddToCart}
+        />
+
+        <TypeSection category="toys" products={catalogue} />
+
+        <ProductRail
           id="new-arrival"
           title="New Arrival"
           products={newArrival}
+          onAddToCart={onAddToCart}
+        />
+
+        <ProductRail
+          id="recommended"
+          title="Recommended"
+          products={recommended}
           onAddToCart={onAddToCart}
         />
 
