@@ -1,5 +1,14 @@
 import express from 'express';
-import { toTypeSlug } from '../src/utils/typeSlug';
+
+// Inlined from src/utils/typeSlug.ts: this file must stay self-contained
+// (no imports outside api/) or the Vercel serverless bundle breaks.
+function toTypeSlug(raw: string): string {
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 const GROQ_MODEL = "openai/gpt-oss-20b";
 

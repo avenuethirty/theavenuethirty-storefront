@@ -65,7 +65,7 @@ Defined in `src/utils/category.ts` — 5 HubSpot-aligned keys: `clothing_apparel
 ## Vercel deployment
 
 - Vercel does not support a long-running Express process. Instead, `server.ts` is wrapped as a single serverless function via `api/index.ts`.
-- `vercel.json` rewrites `/api/*` to `api/index.ts` and all other routes to `/index.html` (SPA entry). `api/index.ts` is a self-contained Express app (all logic inlined — no imports from root `server.ts`) to ensure Vercel's `@vercel/node` builder includes all code in the function package.
+- `vercel.json` rewrites `/api/*` to `api/index.ts` and all other routes to `/index.html` (SPA entry). `api/index.ts` is a self-contained Express app (all logic inlined — no imports from root `server.ts`, **and no relative imports outside `api/` at all**, e.g. `../src/...` — the traced lambda bundle will not include those files and every `/api/*` route dies with `FUNCTION_INVOCATION_FAILED`) to ensure Vercel's `@vercel/node` builder includes all code in the function package.
 - `server.ts` exports `createApp()` (returns the Express app). The `app.listen()` call is guarded by an ESM main-module check so it does not fire when imported by Vercel's runtime. `server.ts` is used only for local development (`npm run dev`).
 - Local dev (`npm run dev`) is unaffected — it still runs `tsx server.ts` directly.
 - Vercel Dashboard env vars must include: `GROQ_API_KEY`, `HUBSPOT_ACCESS_TOKEN`, `GOOGLE_SHEET_CSV_URL`. Do not set removed `VITE_CIRCLE_*` vars.
