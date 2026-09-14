@@ -20,6 +20,7 @@ import { fetchCatalogue } from './utils/catalogue';
 export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [catalogue, setCatalogue] = useState<Product[]>([]);
+  const [catalogueReady, setCatalogueReady] = useState(false);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -29,7 +30,9 @@ export default function App() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    fetchCatalogue().then((products) => setCatalogue(products));
+    fetchCatalogue()
+      .then((products) => setCatalogue(products))
+      .finally(() => setCatalogueReady(true));
   }, []);
 
   useEffect(() => {
@@ -135,7 +138,8 @@ export default function App() {
               />
             }
           />
-          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} />} />
+          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
+          <Route path="/product/:slug/:typeSlug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
           <Route path="/ai-shopping" element={<AiChatPage onAddToCart={handleAddToCart} products={catalogue} />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage onOpenConsultation={(query) => handleOpenAiChat(query)} />} />

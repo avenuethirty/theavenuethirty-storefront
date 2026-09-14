@@ -2,36 +2,48 @@ import React from 'react';
 import { Product } from '../types';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
+import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
 
 interface TypeCardsSectionProps {
   products: Product[];
 }
 
 interface TypeEntry {
-  tagline: string;
+  slug: string;
+  label: string;
   count: number;
   dominantCategory: string;
 }
 
 export const TypeCardsSection: React.FC<TypeCardsSectionProps> = ({ products }) => {
-  const byTagline = new Map<string, { count: number; categories: Record<string, number> }>();
+  const bySlug = new Map<string, { label: string; count: number; categories: Record<string, number> }>();
 
   for (const product of products) {
     const tagline = product.tagline?.trim();
     if (!tagline) continue;
 
-    const entry = byTagline.get(tagline) || { count: 0, categories: {} };
+    const slug = product.typeSlug || toTypeSlug(tagline);
+    const entry = bySlug.get(slug) || { label: tagline, count: 0, categories: {} };
+    entry.label = entry.label.length >= tagline.length ? entry.label : tagline;
     entry.count += 1;
     entry.categories[product.category] = (entry.categories[product.category] || 0) + 1;
-    byTagline.set(tagline, entry);
+    bySlug.set(slug, entry);
   }
 
-  const types: TypeEntry[] = Array.from(byTagline.entries())
-    .map(([tagline, entry]) => ({
-      tagline,
-      count: entry.count,
-      dominantCategory: Object.entries(entry.categories).sort((a, b) => b[1] - a[1])[0][0],
-    }))
+  const types: TypeEntry[] = Array.from(bySlug.entries())
+    .map(([slug, entry]) => {
+      const [dominantCategory, categoryCount] = Object.entries(entry.categories).sort(
+        (a, b) => b[1] - a[1]
+      )[0];
+      return {
+        slug,
+        label: formatTypeLabel(entry.label),
+        // The pill links to the type page within its dominant category, so
+        // the badge must show that page's result count, not the cross-category total.
+        count: categoryCount,
+        dominantCategory,
+      };
+    })
     .sort((a, b) => b.count - a.count)
     .slice(0, 12);
 
@@ -52,11 +64,11 @@ export const TypeCardsSection: React.FC<TypeCardsSectionProps> = ({ products }) 
         <div className="flex flex-wrap items-center justify-center gap-3">
           {types.map((type) => (
             <Link
-              key={type.tagline}
-              to={`/product/${type.dominantCategory}`}
+              key={type.slug}
+              to={`/product/${type.dominantCategory}/${type.slug}`}
               className="group inline-flex items-center gap-2 border border-neutral-300 rounded-full px-5 py-2.5 text-xs font-medium text-[#1A1A1A] hover:border-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white transition-all"
             >
-              <span>{type.tagline}</span>
+              <span>{type.label}</span>
               <span className="text-[10px] opacity-60">{type.count}</span>
               <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>

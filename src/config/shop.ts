@@ -69,7 +69,7 @@ export const SHOP_CONFIG = {
       rows: 2,
     },
     featured: {
-      columns: { mobile: 2, tablet: 2, desktop: 4 },
+      columns: { mobile: 2, tablet: 3, desktop: 6 },
       rows: 2,
     },
     "on-sale": {

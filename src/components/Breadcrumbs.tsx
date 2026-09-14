@@ -5,9 +5,15 @@ import { getCategoryLabel } from "../utils/category";
 
 interface BreadcrumbsProps {
   category: string;
+  typeLabel?: string;
+  typeSlug?: string;
 }
 
-export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ category }) => {
+export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
+  category,
+  typeLabel,
+  typeSlug,
+}) => {
   const label = getCategoryLabel(category);
 
   return (
@@ -20,7 +26,20 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ category }) => {
         Home
       </Link>
       <ChevronRight className="w-3 h-3" />
-      <span className="text-[#1A1A1A]/90 font-semibold">{label}</span>
+      {typeLabel && typeSlug ? (
+        <>
+          <Link
+            to={`/product/${category}`}
+            className="hover:text-[#1A1A1A] transition-colors"
+          >
+            {label}
+          </Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-[#1A1A1A]/90 font-semibold">{typeLabel}</span>
+        </>
+      ) : (
+        <span className="text-[#1A1A1A]/90 font-semibold">{label}</span>
+      )}
     </nav>
   );
 };

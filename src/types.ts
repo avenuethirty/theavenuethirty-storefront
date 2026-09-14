@@ -1,8 +1,18 @@
 export interface Product {
   id: string;
   name: string;
-  category: "clothing_apparel" | "skincare_beauty" | "bags_backpacks" | "accessories" | "toys_kids";
+  category:
+    | "clothing_apparel"
+    | "skincare_beauty"
+    | "bags_backpacks"
+    | "accessories"
+    | "toys_kids"
+    | "skincare"
+    | "bags"
+    | "jewellery"
+    | "toys";
   tagline: string;
+  typeSlug?: string;
   priceMonthly: number;
   originalPrice?: number;
   rating?: number;

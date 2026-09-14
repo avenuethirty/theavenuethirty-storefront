@@ -4,6 +4,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { createHubspotDeal, createSellerLead } from './src/server/hubspot';
 import { SHOP_CONFIG } from './src/config/shop';
+import { toTypeSlug } from './src/utils/typeSlug';
 
 dotenv.config();
 
@@ -122,11 +123,14 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 
+  const tagline = type.trim();
+
   return {
     id: String(sku || name),
     name,
     category: slugifyCategory(category) as any,
-    tagline: type,
+    tagline,
+    typeSlug: tagline ? toTypeSlug(tagline) : undefined,
     priceMonthly,
     originalPrice,
     imageUrl: imageUrl || '',

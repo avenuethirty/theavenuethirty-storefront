@@ -1,5 +1,5 @@
 import React from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { X, Filter } from "lucide-react";
 import { SHOP_CONFIG } from "../config/shop";
 
@@ -30,9 +30,11 @@ const RATING_LABELS: Record<number, string> = {
 
 interface FilterBarProps {
   totalProducts: number;
+  typeLabel?: string;
+  category?: string;
 }
 
-export const FilterBar: React.FC<FilterBarProps> = ({ totalProducts }) => {
+export const FilterBar: React.FC<FilterBarProps> = ({ totalProducts, typeLabel, category }) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const currentSort = searchParams.get("sort") || plp.defaultSort;
@@ -40,6 +42,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({ totalProducts }) => {
   const currentRatingMin = searchParams.get("ratingMin") || "";
 
   const activeFilters = [
+    ...(typeLabel
+      ? [{
+          key: "type",
+          value: typeLabel,
+          href: category ? `/product/${category}` : undefined,
+        }]
+      : []),
     ...(currentSort && currentSort !== "recommended"
       ? [{ key: "sort", value: SORT_LABELS[currentSort] || currentSort }]
       : []),
@@ -147,22 +156,43 @@ export const FilterBar: React.FC<FilterBarProps> = ({ totalProducts }) => {
 
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          {activeFilters.map((filter) => (
-            <div
-              key={filter.key}
-              className="inline-flex items-center gap-1.5 text-xs font-sans text-[#1A1A1A] bg-[#EFEFEF] rounded-full px-3 py-1"
-            >
-              <span>{filter.value}</span>
-              <button
-                type="button"
-                onClick={() => removeFilter(filter.key)}
-                className="hover:text-[#1A1A1A]/50 transition-colors"
-                aria-label={`Remove ${filter.key} filter`}
-              >
+          {activeFilters.map((filter) => {
+            const isTypeChip = filter.key === "type";
+
+            const chipBody = (
+              <>
+                <span>{filter.value}</span>
                 <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
+              </>
+            );
+            const chipClasses = "hover:text-[#1A1A1A]/50 transition-colors";
+
+            return (
+              <div
+                key={filter.key}
+                className="inline-flex items-center gap-1.5 text-xs font-sans text-[#1A1A1A] bg-[#EFEFEF] rounded-full px-3 py-1"
+              >
+                {isTypeChip && filter.href ? (
+                  <Link
+                    to={filter.href}
+                    aria-label={`Remove ${filter.value} filter`}
+                    className={chipClasses}
+                  >
+                    {chipBody}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => removeFilter(filter.key)}
+                    className={chipClasses}
+                    aria-label={`Remove ${filter.key} filter`}
+                  >
+                    {chipBody}
+                  </button>
+                )}
+              </div>
+            );
+          })}
           <button
             type="button"
             onClick={clearAll}

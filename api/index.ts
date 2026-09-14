@@ -1,4 +1,5 @@
 import express from 'express';
+import { toTypeSlug } from '../src/utils/typeSlug';
 
 const GROQ_MODEL = "openai/gpt-oss-20b";
 
@@ -108,11 +109,14 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 
+  const tagline = type.trim();
+
   return {
     id: String(sku || name),
     name,
     category: slugifyCategory(category) as any,
-    tagline: type,
+    tagline,
+    typeSlug: tagline ? toTypeSlug(tagline) : undefined,
     priceMonthly,
     originalPrice,
     imageUrl: imageUrl || '',
