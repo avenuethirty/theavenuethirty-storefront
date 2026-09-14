@@ -4,12 +4,10 @@ import { CategoryCardsSection } from '../components/CategoryCardsSection';
 import { ProductRail } from '../components/ProductRail';
 import { TypeCardsSection } from '../components/TypeCardsSection';
 import { HowItWorks } from '../components/HowItWorks';
-import { SellersSection } from '../components/SellersSection';
 import { CtaSection } from '../components/CtaSection';
 import { SystemApproachSection } from '../components/SystemApproachSection';
 import { AboutUsSection } from '../components/AboutUsSection';
 import { TikTokTestimonials } from '../components/TikTokTestimonials';
-import { CommunityMarquee } from '../components/CommunityMarquee';
 import { Product } from '../types';
 
 interface HomePageProps {
@@ -49,9 +47,9 @@ export const HomePage: React.FC<HomePageProps> = ({
       </div>
 
       <div className="relative bg-[#FAFAF9]">
+        <CategoryCardsSection products={catalogue} />
         <SystemApproachSection />
         <AboutUsSection />
-        <CategoryCardsSection products={catalogue} />
 
         <ProductRail
           id="must-have"
@@ -107,10 +105,6 @@ export const HomePage: React.FC<HomePageProps> = ({
         <HowItWorks />
 
         <TikTokTestimonials />
-
-        <CommunityMarquee />
-
-        <SellersSection productCount={catalogue.length} />
 
         <CtaSection />
       </div>

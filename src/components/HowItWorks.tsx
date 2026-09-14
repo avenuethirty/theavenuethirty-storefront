@@ -10,7 +10,7 @@ const STEPS = [
   },
   {
     num: '02',
-    title: 'Order with Cash on Delivery',
+    title: 'Place Your Order',
     desc: 'Add products to your cart and confirm your order on WhatsApp. No upfront payment, no risk. You pay only when your order arrives.',
     icon: MessageCircle,
   },

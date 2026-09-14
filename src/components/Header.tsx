@@ -132,9 +132,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center justify-end gap-5 md:gap-6 shrink-0">
             <Link
               to="/sell"
-              className="text-sm font-medium hover:opacity-75 transition-opacity cursor-pointer"
+              className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-xl transition-all cursor-pointer ${
+                isScrolled ? "hover:bg-black/5" : "hover:bg-white/10"
+              }`}
+              aria-label="Sell on Avenue 30"
             >
-              Sell
+              Sell on Avenue 30
             </Link>
             <button
               id="header-cart-btn"
