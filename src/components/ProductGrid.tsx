@@ -3,6 +3,7 @@ import { Product } from '../types';
 import { SHOP_CONFIG } from '../config/shop';
 import { Check, Plus } from 'lucide-react';
 import { ScrollTextReveal } from './ScrollTextReveal';
+import { getDiscountBadge } from '../utils/discount';
 
 interface ProductGridProps {
   products: Product[];
@@ -76,6 +77,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[10px]">
               {displayedProducts.map((product) => {
                 const isAdded = addedProductId === product.id;
+                const discountBadge = getDiscountBadge(product);
 
                 return (
                   <div
@@ -126,6 +128,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
                           <>
                             <span className="line-through opacity-70">{SHOP_CONFIG.localization.currencySymbol}{product.originalPrice.toFixed(2)}</span>
                             <span className="ml-2 font-semibold text-[#1A1A1A]">{SHOP_CONFIG.localization.currencySymbol}{product.priceMonthly.toFixed(2)}</span>
+                            {discountBadge && (
+                              <span className="ml-2 font-semibold text-red-600">{discountBadge}</span>
+                            )}
                           </>
                         ) : (
                           <>{SHOP_CONFIG.localization.currencySymbol}{product.priceMonthly.toFixed(2)}</>

@@ -4,6 +4,7 @@ import { SHOP_CONFIG } from "../config/shop";
 import { Check, Plus } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { SkeletonCard } from "./SkeletonCard";
+import { getDiscountBadge } from "../utils/discount";
 
 interface PLPGridProps {
   products: Product[];
@@ -90,6 +91,7 @@ const PLPGridContent: React.FC<PLPGridProps> = ({ products, onAddToCart }) => {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[10px]">
         {paginatedProducts.map((product) => {
           const isAdded = addedProductId === product.id;
+          const discountBadge = getDiscountBadge(product);
 
           return (
             <div
@@ -143,6 +145,9 @@ const PLPGridContent: React.FC<PLPGridProps> = ({ products, onAddToCart }) => {
                         {SHOP_CONFIG.localization.currencySymbol}
                         {product.priceMonthly.toFixed(2)}
                       </span>
+                      {discountBadge && (
+                        <span className="ml-2 font-semibold text-red-600">{discountBadge}</span>
+                      )}
                     </>
                   ) : (
                     <>

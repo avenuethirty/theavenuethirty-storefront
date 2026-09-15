@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { compressImage } from '../utils/imageCompressor';
+import { getDiscountBadge } from '../utils/discount';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Product } from '../types';
 import { PRODUCTS } from '../data/mockData';
@@ -712,10 +713,20 @@ export const AiChatPage: React.FC<AiChatPageProps> = ({
                                    <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200 truncate inline-block max-w-full align-middle">
                                      {prod.tagline || prod.category}
                                    </span>
-                                  <h4 className="font-semibold text-xs text-[#18181B] truncate mt-1">{prod.name}</h4>
-                                  <p className="text-[11px] font-bold text-[#18181B] mt-0.5">
-                                    {SHOP_CONFIG.localization.currencySymbol}{prod.priceMonthly.toFixed(2)}
-                                  </p>
+                                <h4 className="font-semibold text-xs text-[#18181B] truncate mt-1">{prod.name}</h4>
+                                <span className="text-[11px] font-bold text-[#18181B] mt-0.5">
+                                  {prod.originalPrice ? (
+                                    <>
+                                      <span className="line-through opacity-50 mr-1.5">{SHOP_CONFIG.localization.currencySymbol}{prod.originalPrice.toFixed(2)}</span>
+                                      <span className="font-semibold">{SHOP_CONFIG.localization.currencySymbol}{prod.priceMonthly.toFixed(2)}</span>
+                                      {getDiscountBadge(prod) && (
+                                        <span className="ml-1.5 text-red-600">{getDiscountBadge(prod)}</span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>{SHOP_CONFIG.localization.currencySymbol}{prod.priceMonthly.toFixed(2)}</>
+                                  )}
+                                </span>
                                 </div>
                               </div>
 

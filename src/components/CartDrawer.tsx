@@ -3,6 +3,7 @@ import { X, Trash2, Plus, Minus, ArrowRight, Check, Sparkles } from 'lucide-reac
 import { motion, AnimatePresence } from 'motion/react';
 import { CartItem, GuestDetails } from '../types';
 import { buildWhatsAppLink } from '../utils/whatsapp';
+import { getDiscountBadge } from '../utils/discount';
 import { SHOP_CONFIG } from '../config/shop';
 
 interface CartDrawerProps {
@@ -216,7 +217,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </p>
               </div>
             ) : (
-              cartItems.map((item) => (
+              cartItems.map((item) => {
+                const discountBadge = getDiscountBadge(item.product);
+                return (
                 <div
                   key={item.product.id}
                   className="flex items-center gap-4 p-4 rounded-2xl bg-[#F8F7F4] border border-neutral-200"
@@ -267,13 +270,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       <span className="font-bold text-sm text-[#111110]">
                         {currencySymbol}{(item.product.priceMonthly * item.quantity).toFixed(2)}
                       </span>
+                      {discountBadge && (
+                        <span className="ml-1.5 text-xs font-semibold text-red-600">{discountBadge}</span>
+                      )}
                     </div>
                   </div>
                 </div>
-              ))
+              );
+            })
             )
-          ) : (
-            <div className="space-y-5">
+            ) : (
+              <div className="space-y-5">
               <h4 className="text-sm font-bold text-[#111110]">Delivery Details</h4>
               <p className="text-xs text-neutral-500">
                 Enter your details to complete the order via Cash on Delivery.

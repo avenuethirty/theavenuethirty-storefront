@@ -3,6 +3,7 @@ import { Product } from '../types';
 import { SHOP_CONFIG } from '../config/shop';
 import { Check, Plus } from 'lucide-react';
 import { SkeletonCard } from './SkeletonCard';
+import { getDiscountBadge } from '../utils/discount';
 
 interface ProductRailProps {
   id?: string;
@@ -135,6 +136,7 @@ export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, p
         <div className={`grid ${COLUMN_CLASSES[columns.mobile] || COLUMN_CLASSES[1]} ${TABLET_COLUMN_CLASSES[columns.tablet] || TABLET_COLUMN_CLASSES[2]} ${DESKTOP_COLUMN_CLASSES[columns.desktop] || DESKTOP_COLUMN_CLASSES[4]} gap-[10px]`}>
           {displayedProducts.map((product) => {
             const isAdded = addedProductId === product.id;
+            const discountBadge = getDiscountBadge(product);
 
             return (
               <div
@@ -185,6 +187,9 @@ export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, p
                       <>
                         <span className="line-through opacity-70">{SHOP_CONFIG.localization.currencySymbol}{product.originalPrice.toFixed(2)}</span>
                         <span className="ml-2 font-semibold text-[#1A1A1A]">{SHOP_CONFIG.localization.currencySymbol}{product.priceMonthly.toFixed(2)}</span>
+                        {discountBadge && (
+                          <span className="ml-2 font-semibold text-red-600">{discountBadge}</span>
+                        )}
                       </>
                     ) : (
                       <>{SHOP_CONFIG.localization.currencySymbol}{product.priceMonthly.toFixed(2)}</>
