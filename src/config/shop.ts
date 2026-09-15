@@ -53,6 +53,7 @@ export const SHOP_CONFIG = {
     { name: "Bags", slug: "bags", image: "https://i.postimg.cc/Xq92cc2G/bags.webp" },
     { name: "Jewellery", slug: "jewellery", image: "https://i.postimg.cc/vZGQn0Ph/jewellery.webp" },
     { name: "Kids", slug: "toys", image: "https://i.postimg.cc/90z9cW9T/toys.webp" },
+    { name: "Premium", slug: "premium", image: "https://i.postimg.cc/90z9cW9T/toys.webp" },
   ],
 
   // Homepage categories grid
@@ -79,12 +80,13 @@ export const SHOP_CONFIG = {
       category: "bags",
       title: "Find your bag",
       format: "cards",
-      grid: { mobile: 2, tablet: 3, desktop: 8 },
-      limit: 8,
+      grid: { mobile: 3, tablet: 6, desktop: 6 },
+      limit: 6,
       types: {
         handbag: { image: "https://i.postimg.cc/3x3KGtL9/bags-02.webp", label: "Designer Handbags", order: 1 },
         "crossbody-bag": { image: "https://i.postimg.cc/7PcXptGP/crossbody-bag01.webp", label: "Crossbody Bag",},
-        "tote-bag": { image: "https://i.postimg.cc/L6xPcn0D/tote-bag.webp", label: "Tote Bag",},
+        "shoulder-bag": { image: "https://i.postimg.cc/W4d5j5zX/shoulder-bag-01.webp", label: "Shoulder Bag",},
+        "tote-bag": { image: "https://i.postimg.cc/66M4LtYq/tote-bag-02.webp", label: "Tote Bag",},
         "wallet-clutch": { image: "https://i.postimg.cc/vmmkMqyr/wallet-03.webp", label: "Wallet & Clutch",},
         backpack: { image: "https://i.postimg.cc/N0Rjcjk3/backpack.webp", label: "Backpack",},
         "duffel-bag": { image: "https://i.postimg.cc/RCWVSddk/duffle-bag.webp", label: "Duffle Bag",},
