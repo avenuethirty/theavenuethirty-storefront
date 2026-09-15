@@ -170,7 +170,7 @@ export const TypeSection: React.FC<TypeSectionProps> = ({ category, products }) 
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-              <div className="relative z-10 space-y-2 max-w-sm">
+              <div className="relative z-10 max-w-sm">
                 <h3 className="text-xl sm:text-2xl font-light tracking-tight text-white font-sans">
                   {type.label}
                 </h3>
