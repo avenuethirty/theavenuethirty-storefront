@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '../types';
 import { SHOP_CONFIG } from '../config/shop';
 import { Check, Plus } from 'lucide-react';
+import { SkeletonCard } from './SkeletonCard';
 
 interface ProductRailProps {
   id?: string;
@@ -9,6 +10,7 @@ interface ProductRailProps {
   subtitle?: string;
   products: Product[];
   onAddToCart: (product: Product) => void;
+  catalogueReady?: boolean;
 }
 
 // Responsive grid class lookup tables (Tailwind v4 needs static class strings).
@@ -44,16 +46,34 @@ const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
 
 const DEFAULT_GRID = { mobile: 1, tablet: 2, desktop: 4 };
 
-export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, products, onAddToCart }) => {
+export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, products, onAddToCart, catalogueReady = true }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
-
-  if (!products || products.length === 0) return null;
 
   // Grid settings for this carousel section; falls back to defaults.
   const grid = (id && SHOP_CONFIG.carouselGrid[id as keyof typeof SHOP_CONFIG.carouselGrid]) || undefined;
   const columns = grid?.columns || DEFAULT_GRID;
   const rows = grid?.rows || 1;
+
+  if (!catalogueReady && products.length === 0) {
+    const skelCount = columns.mobile * rows;
+    return (
+      <section id={id} className="py-16 md:py-24 bg-[#FAFAF9] text-[#1A1A1A] w-full">
+        <div className="w-full px-[10px]">
+          <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-[#1A1A1A] font-sans mb-6">
+            {title}
+          </h2>
+          <div className={`grid ${COLUMN_CLASSES[columns.mobile] || COLUMN_CLASSES[1]} ${TABLET_COLUMN_CLASSES[columns.tablet] || TABLET_COLUMN_CLASSES[2]} ${DESKTOP_COLUMN_CLASSES[columns.desktop] || DESKTOP_COLUMN_CLASSES[4]} gap-[10px]`}>
+            {Array.from({ length: skelCount }, (_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!products || products.length === 0) return null;
 
   // Items per page = cards on screen at once (columns * rows at the widest breakpoint).
   const itemsPerPage = Math.max(columns.mobile, columns.tablet, columns.desktop) * rows;

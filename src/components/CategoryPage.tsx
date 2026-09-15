@@ -118,17 +118,12 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         </div>
 
         <div className="max-w-7xl mx-auto px-6 pb-24">
-          {isLoading ? (
-            <div className="text-center py-16">
-              <p className="text-[#1A1A1A]/50 font-sans text-sm">Loading products…</p>
-            </div>
-          ) : (
-            <PLPGrid
-              products={filtered}
-              onAddToCart={onAddToCart}
-              onOpenConsultation={onOpenConsultation}
-            />
-          )}
+          <PLPGrid
+            products={filtered}
+            onAddToCart={onAddToCart}
+            onOpenConsultation={onOpenConsultation}
+            loading={isLoading}
+          />
         </div>
       </main>
     </div>

@@ -3,30 +3,57 @@ import { Product } from "../types";
 import { SHOP_CONFIG } from "../config/shop";
 import { Check, Plus } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { SkeletonCard } from "./SkeletonCard";
 
 interface PLPGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
   onOpenConsultation: () => void;
+  loading?: boolean;
 }
 
-export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation }) => {
+export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation, loading = false }) => {
+  const { plp } = SHOP_CONFIG;
+  const itemsPerPage = plp.itemsPerPage;
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[10px]">
+          {Array.from({ length: itemsPerPage }, (_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-[#1A1A1A]/50 font-sans text-sm">
+          No products match your filters. Try adjusting your selection.
+        </p>
+      </div>
+    );
+  }
+
+  return <PLPGridContent products={products} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} />;
+};
+
+const PLPGridContent: React.FC<PLPGridProps> = ({ products, onAddToCart }) => {
   const { plp } = SHOP_CONFIG;
   const itemsPerPage = plp.itemsPerPage;
   const [searchParams, setSearchParams] = useSearchParams();
 
   const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
 
-  // Page number lives in the URL (?page=N) so it survives re-renders (e.g.
-  // opening the cart drawer) and is shareable. Invalid or out-of-range values
-  // render page 1 until the normalizer below cleans the param.
   const rawPage = Number(searchParams.get("page"));
   const currentPage =
     Number.isInteger(rawPage) && rawPage >= 1 && rawPage <= totalPages
       ? rawPage - 1
       : 0;
 
-  // Silently normalize illegal ?page values instead of erroring.
   useEffect(() => {
     const paramValue = searchParams.get("page");
     if (paramValue === null) return;
@@ -40,7 +67,7 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
 
   const paginate = (page1: number) => {
     const next = new URLSearchParams(searchParams);
-    if (page1 <= 1) next.delete("page"); // page 1 is the default — keep URLs clean
+    if (page1 <= 1) next.delete("page");
     else next.set("page", String(page1));
     setSearchParams(next, { replace: true });
   };
@@ -57,16 +84,6 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
     currentPage * itemsPerPage,
     (currentPage + 1) * itemsPerPage
   );
-
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <p className="text-[#1A1A1A]/50 font-sans text-sm">
-          No products match your filters. Try adjusting your selection.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full">

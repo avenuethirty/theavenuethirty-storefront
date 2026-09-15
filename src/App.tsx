@@ -140,6 +140,7 @@ export default function App() {
                   setIsCartOpen(true);
                 }}
                 products={catalogue}
+                catalogueReady={catalogueReady}
               />
             }
           />

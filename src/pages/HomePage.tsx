@@ -14,12 +14,14 @@ interface HomePageProps {
   onStartAiChat: (query?: string) => void;
   onAddToCart: (product: Product) => void;
   products?: Product[];
+  catalogueReady?: boolean;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
   onStartAiChat,
   onAddToCart,
   products,
+  catalogueReady = true,
 }) => {
   const catalogue = products || [];
 
@@ -56,6 +58,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="Must-Have Styles"
           products={mustHave}
           onAddToCart={onAddToCart}
+          catalogueReady={catalogueReady}
         />
 
         <ProductRail
@@ -63,6 +66,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="Best Seller"
           products={bestSeller}
           onAddToCart={onAddToCart}
+          catalogueReady={catalogueReady}
         />
 
         <TypeSection category="bags" products={catalogue} />
@@ -72,6 +76,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="On Sale"
           products={onSale}
           onAddToCart={onAddToCart}
+          catalogueReady={catalogueReady}
         />
 
         <TypeSection category="jewellery" products={catalogue} />
@@ -81,6 +86,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="Trending"
           products={trending}
           onAddToCart={onAddToCart}
+          catalogueReady={catalogueReady}
         />
 
         <ProductRail
@@ -88,6 +94,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="Featured"
           products={featured}
           onAddToCart={onAddToCart}
+          catalogueReady={catalogueReady}
         />
 
         <TypeSection category="toys" products={catalogue} />
@@ -97,6 +104,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="New Arrival"
           products={newArrival}
           onAddToCart={onAddToCart}
+          catalogueReady={catalogueReady}
         />
 
         <ProductRail
@@ -104,6 +112,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="Recommended"
           products={recommended}
           onAddToCart={onAddToCart}
+          catalogueReady={catalogueReady}
         />
 
         <HowItWorks />
