@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Product } from "../types";
 import { SHOP_CONFIG } from "../config/shop";
 import { Check, Plus } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 interface PLPGridProps {
   products: Product[];
@@ -12,17 +13,37 @@ interface PLPGridProps {
 export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation }) => {
   const { plp } = SHOP_CONFIG;
   const itemsPerPage = plp.itemsPerPage;
-  const [currentPage, setCurrentPage] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
+
+  // Page number lives in the URL (?page=N) so it survives re-renders (e.g.
+  // opening the cart drawer) and is shareable. Invalid or out-of-range values
+  // render page 1 until the normalizer below cleans the param.
+  const rawPage = Number(searchParams.get("page"));
+  const currentPage =
+    Number.isInteger(rawPage) && rawPage >= 1 && rawPage <= totalPages
+      ? rawPage - 1
+      : 0;
+
+  // Silently normalize illegal ?page values instead of erroring.
   useEffect(() => {
-    setCurrentPage(0);
-  }, [products]);
+    const paramValue = searchParams.get("page");
+    if (paramValue === null) return;
+    const n = Number(paramValue);
+    if (!Number.isInteger(n) || n < 1 || n > totalPages) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("page");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, totalPages, setSearchParams]);
 
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const paginatedProducts = products.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
-  );
+  const paginate = (page1: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (page1 <= 1) next.delete("page"); // page 1 is the default — keep URLs clean
+    else next.set("page", String(page1));
+    setSearchParams(next, { replace: true });
+  };
 
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
 
@@ -32,13 +53,10 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
     setTimeout(() => setAddedProductId(null), 1500);
   };
 
-  const handlePrev = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleNext = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
-  };
+  const paginatedProducts = products.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
 
   if (products.length === 0) {
     return (
@@ -125,7 +143,7 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-6 mt-12 mb-8">
           <button
-            onClick={handlePrev}
+            onClick={() => paginate(currentPage)}
             disabled={currentPage === 0}
             className={`text-xs font-sans uppercase tracking-widest transition-colors cursor-pointer ${
               currentPage === 0
@@ -139,7 +157,7 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
             Page {currentPage + 1} of {totalPages}
           </span>
           <button
-            onClick={handleNext}
+            onClick={() => paginate(currentPage + 2)}
             disabled={currentPage === totalPages - 1}
             className={`text-xs font-sans uppercase tracking-widest transition-colors cursor-pointer ${
               currentPage === totalPages - 1

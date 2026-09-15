@@ -77,6 +77,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({ totalProducts, typeLabel, 
     } else {
       newParams.delete(key);
     }
+    // Changing a filter changes the result set, so reset pagination to page 1.
+    newParams.delete("page");
     setSearchParams(newParams, { replace: true });
   };
 
