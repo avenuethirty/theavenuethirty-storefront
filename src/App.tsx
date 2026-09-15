@@ -5,7 +5,7 @@ import { Footer } from './components/Footer';
 import { AiChatPage } from './components/AiChatPage';
 import { CartDrawer } from './components/CartDrawer';
 import { NavigationMenuDrawer } from './components/NavigationMenuDrawer';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './components/CategoryPage';
@@ -28,6 +28,10 @@ export default function App() {
   const navigate = useNavigate();
   const lenisRef = useRef<Lenis | null>(null);
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
+  // Only the pagination param should scroll-reset — changing sort/price/rating
+  // filters keeps the scroll position.
+  const pageNumber = searchParams.get('page');
 
   useEffect(() => {
     fetchCatalogue()
@@ -59,15 +63,16 @@ export default function App() {
     };
   }, []);
 
-  // Reset scroll to top on every page change. Keyed on pathname only, so
-  // URL-synced query strings (e.g. category filters) don't trigger a jump.
+  // Reset scroll to top on every page change, and when the ?page= param
+  // changes (pagination shows a fresh result set, so start from the top).
+  // Other query-string changes (e.g. sort/price/rating filters) keep position.
   useLayoutEffect(() => {
     if (lenisRef.current) {
       lenisRef.current.scrollTo(0, { immediate: true });
     } else {
       window.scrollTo(0, 0);
     }
-  }, [pathname]);
+  }, [pathname, pageNumber]);
 
   const handleOpenAiChat = (query?: string) => {
     navigate('/ai-shopping', { state: { initialQuery: query || '' } });
