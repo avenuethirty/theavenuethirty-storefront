@@ -584,11 +584,22 @@ app.get('/api/location/detect', async (req, res) => {
     }
 
     const data = await response.json();
+    const countryCode = (data?.countryCode || '').trim().toUpperCase();
+    if (countryCode && countryCode !== 'PK') {
+      return res.status(200).json({
+        success: false,
+        error: `Detected country is ${countryCode}. Please select your Pakistan city manually.`,
+        city: '',
+        postalCode: '',
+        countryCode,
+      });
+    }
+
     res.json({
       success: true,
       city: data?.location?.city || data?.city || '',
       postalCode: data?.location?.postalCode || data?.postalCode || '',
-      countryCode: data?.countryCode || '',
+      countryCode,
     });
   } catch (err: any) {
     console.error('Location detection error:', err);
