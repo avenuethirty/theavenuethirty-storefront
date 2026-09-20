@@ -7,46 +7,76 @@ export interface TypeSectionConfig {
   types: Record<string, { image?: string; label?: string; order?: number }>;
 }
 
+export interface CollectionMatch {
+  collection?: string;
+  category?: string;
+  type?: string;
+  minDiscountPct?: number;
+  priceMin?: number;
+  priceMax?: number;
+  ratingMin?: number;
+}
+
+export interface CollectionConfig {
+  slug: string;
+  title: string;
+  subtitle?: string;
+  match: CollectionMatch;
+  image?: string;
+  grid?: { mobile: number; tablet: number; desktop: number };
+  itemsPerPage?: number;
+  card?: { hidden?: boolean; order?: number };
+}
+
 export const SHOP_CONFIG = {
+  // ==========================================================================
+  // Site identity & contact
+  // ==========================================================================
   name: "The Avenue Thirty",
   domain: "theavenuethirty.com",
 
-  // Homepage hero section
   hero: {
     title: "Your Avenue to Confident Living",
     image: "https://i.postimg.cc/5tJ5zYT3/herobg-01.webp",
-    video: "", // background video; falls back to image if empty or fails to load
+    video: "",
   },
 
-  // Contact
   whatsapp: {
     number: "923331458843",
     defaultMessage: "Hi, I would like to inquire about an order from The Avenue Thirty.",
   },
 
-  // Store & Currency Settings
+  // ==========================================================================
+  // Localization
+  // ==========================================================================
   localization: {
     currencySymbol: "Rs. ",
     currencyCode: "PKR",
     formatLocale: "en-PK",
   },
 
-  // Logistics & Checkout
+  // ==========================================================================
+  // Logistics & checkout
+  // ==========================================================================
   shipping: {
     defaultFee: 240,
     freeShippingThreshold: 5000,
     allowCashOnDelivery: true,
   },
 
-  // Product Listing & Pagination
+  // ==========================================================================
+  // Catalog settings
+  // ==========================================================================
   catalog: {
     itemsPerPage: 4,
     defaultSort: "featured",
     featuredTag: "featured",
   },
 
-  // Allowed Main Categories for Top Navigation & Filters
+  // ==========================================================================
+  // Categories (top nav & filter scope)
   // On DB Product Categories Dropdown should match with the slug to display the products on storefront.
+  // ==========================================================================
   categories: [
     //{ name: "Clothing & Apparel", slug: "clothing_apparel" },
     { name: "Skincare", slug: "skincare", image: "https://i.postimg.cc/Rh0rgYH1/skincare.webp" },
@@ -56,25 +86,34 @@ export const SHOP_CONFIG = {
     { name: "Premium", slug: "premium", image: "https://i.postimg.cc/90z9cW9T/toys.webp" },
   ],
 
-  // Homepage categories grid
   categoryGrid: {
     columns: {
-      mobile: 2, // cards per row on mobile (< 640px)
-      tablet: 2, // cards per row on tablet (>= 640px)
-      desktop: 4, // cards per row on desktop (>= 1024px)
+      mobile: 2,
+      tablet: 2,
+      desktop: 4,
     },
-    rows: 1, // rows to display: shows first (columns * rows) categories
+    rows: 1,
   },
 
-  // Homepage "Shop by type" sections, one per category. Array order is the
-  // homepage order for these sections. Each section renders the category's
-  // types (the sheet's Type column) as image cards or pill links that deep-link
-  // to /product/:category/:typeSlug. Types sort by product count desc unless
+  collectionCardGrid: {
+    columns: {
+      mobile: 2,
+      tablet: 3,
+      desktop: 4,
+    },
+  },
+
+  // ==========================================================================
+  // Homepage "Shop by type" sections
+  // Array order is the homepage order. Each renders the category's types
+  // (sheet Type column) as image cards or pill links deep-linking to
+  // /product/:category/:typeSlug. Types sort by product count desc unless
   // pinned via `order`. Entries with no matching products are skipped.
   // Per-type overrides are keyed by type slug (slugified Type column value):
-  //   image — custom card image (falls back to the type's first product image)
+  //   image — custom card image (falls back to type's first product image)
   //   label — display label override (falls back to the sheet tagline)
   //   order — manual position pin (1 = first); omit for count-desc order
+  // ==========================================================================
   typeSections: [
     {
       category: "bags",
@@ -84,13 +123,13 @@ export const SHOP_CONFIG = {
       limit: 6,
       types: {
         handbag: { image: "https://i.postimg.cc/3x3KGtL9/bags-02.webp", label: "Designer Handbags", order: 1 },
-        "crossbody-bag": { image: "https://i.postimg.cc/7PcXptGP/crossbody-bag01.webp", label: "Crossbody Bag",},
-        "shoulder-bag": { image: "https://i.postimg.cc/W4d5j5zX/shoulder-bag-01.webp", label: "Shoulder Bag",},
-        "tote-bag": { image: "https://i.postimg.cc/66M4LtYq/tote-bag-02.webp", label: "Tote Bag",},
-        "wallet-clutch": { image: "https://i.postimg.cc/vmmkMqyr/wallet-03.webp", label: "Wallet & Clutch",},
-        backpack: { image: "https://i.postimg.cc/N0Rjcjk3/backpack.webp", label: "Backpack",},
-        "duffel-bag": { image: "https://i.postimg.cc/RCWVSddk/duffle-bag.webp", label: "Duffle Bag",},
-        "office-bag": { image: "https://i.postimg.cc/rpqwqLZ1/office-bag.webp", label: "Office Bag",},
+        "crossbody-bag": { image: "https://i.postimg.cc/Nj0cHccZ/crossbody-bag-02.webp", label: "Crossbody Bag", },
+        "shoulder-bag": { image: "https://i.postimg.cc/W4d5j5zX/shoulder-bag-01.webp", label: "Shoulder Bag", },
+        "tote-bag": { image: "https://i.postimg.cc/66M4LtYq/tote-bag-02.webp", label: "Tote Bag", },
+        "wallet-clutch": { image: "https://i.postimg.cc/vmmkMqyr/wallet-03.webp", label: "Wallet & Clutch", },
+        backpack: { image: "https://i.postimg.cc/N0Rjcjk3/backpack.webp", label: "Backpack", },
+        "duffel-bag": { image: "https://i.postimg.cc/RCWVSddk/duffle-bag.webp", label: "Duffle Bag", },
+        "office-bag": { image: "https://i.postimg.cc/rpqwqLZ1/office-bag.webp", label: "Office Bag", },
       },
     },
     {
@@ -102,47 +141,137 @@ export const SHOP_CONFIG = {
     },
     {
       category: "toys",
+      title: "Kids Zone",
       format: "pills",
       limit: 8,
       types: {},
     },
   ] as TypeSectionConfig[],
- 
-  // Homepage carousel grids, keyed by section id.
-  // Status labels come from the catalogue (Collections column on the sheet):
-  // 'Featured', 'Best Seller', 'Trending', 'Sale', 'New Arrival', 'Must-Have Styles', 'Recommended'.
+
+  // ==========================================================================
+  // Collections registry — declarative filter-based catalogue views
+  // Reachable at flat URLs: /:slug
+  // Status-based collections match the sheet's Collections column (case-insensitive).
+  // Creative collections use category, price, discount, or rating filters.
+  // `card.hidden: true` means the collection is reachable by URL but not
+  //   surfaced in the homepage "Shop by Collection" card grid.
+  // `card.order` controls position in the card grid (lower = first).
+  // ==========================================================================
+  collections: [
+    // --- Status-based (direct sheet tag match) ---
+    {
+      slug: "must-have",
+      title: "Must-Have Styles",
+      match: { collection: "Must-Have Styles" },
+    },
+    {
+      slug: "best-sellers",
+      title: "Best Sellers",
+      match: { collection: "Best Seller" },
+    },
+    {
+      slug: "on-sale",
+      title: "On Sale",
+      match: { collection: "Sale" },
+    },
+    {
+      slug: "new-in",
+      title: "New Arrivals",
+      match: { collection: "New Arrival" },
+    },
+    // --- Nav-hidden pages (reachable by URL only) ---
+    {
+      slug: "trending",
+      title: "Trending",
+      match: { collection: "Trending" },
+      card: { hidden: true },
+    },
+    {
+      slug: "featured",
+      title: "Featured",
+      match: { collection: "Featured" },
+      card: { hidden: true },
+    },
+    // --- Creative / filter-based collections ---
+    {
+      slug: "budget-buys",
+      title: "Budget Buys",
+      subtitle: "Affordable picks under Rs. 1,000",
+      match: { priceMin: 0, priceMax: 1000 },
+    },
+    {
+      slug: "budget-skincare",
+      title: "Skincare Under Rs. 1,000",
+      subtitle: "Gentle care without the splurge",
+      match: { category: "skincare", priceMin: 0, priceMax: 1000 },
+    },
+    {
+      slug: "bags-under-1500",
+      title: "Handbags Under Rs. 1,500",
+      subtitle: "Statement bags at a steal",
+      match: { category: "bags", priceMin: 0, priceMax: 1500 },
+    },
+    {
+      slug: "bags-clearance",
+      title: "Bags 50%+ Off",
+      subtitle: "Deep discounts on our best bags",
+      match: { category: "bags", minDiscountPct: 50 },
+    },
+    {
+      slug: "top-rated",
+      title: "Top Rated",
+      subtitle: "Our highest-rated picks",
+      match: { ratingMin: 4 },
+    },
+  ] as CollectionConfig[],
+
+  // ==========================================================================
+  // Homepage configuration
+  // ==========================================================================
+
+  // Carousel grid config, keyed by collection slug.
+  // Only collections that appear as rails in homepage.sequence need entries.
+  // Creative collections (budget-buys, etc.) surface via collectionCards, not as rails.
   carouselGrid: {
     "must-have": {
       columns: { mobile: 2, tablet: 2, desktop: 3 },
       rows: 1,
     },
-    "best-seller": {
+    "best-sellers": {
       columns: { mobile: 2, tablet: 2, desktop: 4 },
-      rows: 2,
-    },
-    featured: {
-      columns: { mobile: 2, tablet: 3, desktop: 6 },
       rows: 2,
     },
     "on-sale": {
       columns: { mobile: 2, tablet: 2, desktop: 8 },
       rows: 2,
     },
-    recommended: {
-      columns: { mobile: 2, tablet: 2, desktop: 5 },
-      rows: 2,
-    },
-    trending: {
-      columns: { mobile: 2, tablet: 2, desktop: 4 },
-      rows: 2,
-    },
-    "new-arrival": {
+    "new-in": {
       columns: { mobile: 2, tablet: 2, desktop: 4 },
       rows: 2,
     },
   },
 
- // Social Media Links
+  // Homepage section sequence — render order drives the page layout.
+  // The first item renders immediately; subsequent items lazy-mount via IntersectionObserver.
+  // No banner entries: full-width category cards duplicate CategoryCardsSection and add scroll.
+  homepage: {
+    sequence: [
+      { type: "rail", collection: "must-have" },
+      { type: "rail", collection: "best-sellers" },
+      { type: "types", category: "bags" },
+      { type: "rail", collection: "on-sale" },
+      { type: "types", category: "jewellery" },
+      { type: "rail", collection: "new-in" },
+      { type: "types", category: "toys" },
+    ] as Array<
+      | { type: "rail"; collection: string }
+      | { type: "types"; category: string }
+    >,
+  },
+
+  // ==========================================================================
+  // Social media links
+  // ==========================================================================
   social: {
     instagram: "https://instagram.com/theavenuethirty",
     tiktok: "https://tiktok.com/@theavenuethirty",
@@ -150,10 +279,16 @@ export const SHOP_CONFIG = {
     snapchat: "https://snapchat.com/add/theavenuethirty",
   },
 
+  // ==========================================================================
+  // AI settings
+  // ==========================================================================
   ai: {
     model: "openai/gpt-oss-20b",
   },
 
+  // ==========================================================================
+  // Product listing page (PLP) settings
+  // ==========================================================================
   plp: {
     itemsPerPage: 12,
     gridColumns: { mobile: 2, tablet: 3, desktop: 4 },

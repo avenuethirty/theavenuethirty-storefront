@@ -14,7 +14,7 @@ const EMAIL = 'support@theavenuethirty.com';
 const QUICK_FAQS = [
   {
     question: 'How long does delivery take?',
-    answer: 'Standard delivery is 3-5 business days within Pakistan. Shipping is Rs. 240, and free on orders over Rs. 5,000.',
+    answer: 'Standard delivery is 3-5 business days within Pakistan. Delivery is Rs. 240, and free on orders over Rs. 5,000.',
   },
   {
     question: 'How does cash on delivery work?',

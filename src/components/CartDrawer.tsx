@@ -5,6 +5,8 @@ import { CartItem, GuestDetails } from '../types';
 import { buildWhatsAppLink } from '../utils/whatsapp';
 import { getDiscountBadge } from '../utils/discount';
 import { SHOP_CONFIG } from '../config/shop';
+import { PAKISTAN_CITIES } from '../utils/pakistanCities';
+import { useDeliveryLocation } from '../context/LocationContext';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -16,27 +18,6 @@ interface CartDrawerProps {
 }
 
 type Slide = 'cart' | 'delivery' | 'confirmation';
-
-const PAKISTANI_CITIES = [
-  "Karachi",
-  "Lahore",
-  "Islamabad",
-  "Rawalpindi",
-  "Faisalabad",
-  "Peshawar",
-  "Multan",
-  "Gujranwala",
-  "Sialkot",
-  "Quetta",
-  "Hyderabad",
-  "Bahawalpur",
-  "Sargodha",
-  "Sukkur",
-  "Abbottabad",
-  "Mardan",
-  "Gujrat",
-  "Sheikhupura",
-] as const;
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
   isOpen,
@@ -57,6 +38,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   });
   const [orderId, setOrderId] = useState('');
   const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
+  const { city: detectedCity, postalCode: detectedPostal } = useDeliveryLocation();
+
+  useEffect(() => {
+    if (slide === 'delivery') {
+      setGuest((prev) => ({
+        ...prev,
+        city: prev.city || detectedCity || '',
+        postalCode: prev.postalCode || detectedPostal || '',
+      }));
+    }
+  }, [slide, detectedCity, detectedPostal]);
 
   // Lock page scroll while the drawer is open (same pattern App.tsx uses for
   // the AI chat). Without this, Lenis scrolls the page behind the drawer when
@@ -325,12 +317,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
                   >
                     <option value="">Select city</option>
-                    {PAKISTANI_CITIES.map((city) => (
-                      <option key={city} value={city}>
-                        {city}
+                    {PAKISTAN_CITIES.map((city) => (
+                      <option key={city.name} value={city.name}>
+                        {city.name}
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Postal Code (optional)</label>
+                  <input
+                    type="text"
+                    value={guest.postalCode || ''}
+                    onChange={(e) => setGuest({ ...guest, postalCode: e.target.value })}
+                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
+                    placeholder="e.g. 51310"
+                  />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Delivery Notes (optional)</label>
@@ -358,7 +360,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Shipping</span>
+                <span>Delivery</span>
                 <span className="font-bold text-emerald-700">
                   {shippingFee === 0 ? 'FREE' : `${currencySymbol}${shippingFee.toFixed(2)}`}
                 </span>

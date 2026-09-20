@@ -1,6 +1,7 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
-import { Sparkles, ShoppingBag, Menu } from "lucide-react";
+import { useLocation as useRouterLocation } from "react-router-dom";
+import { useDeliveryLocation } from "../context/LocationContext";
+import { Sparkles, ShoppingBag, Menu, MapPin } from "lucide-react";
 import { LogoSvg } from "./Logo";
 import { SHOP_CONFIG } from "../config/shop";
 import { Link } from "react-router-dom";
@@ -10,6 +11,7 @@ interface HeaderProps {
   onOpenCart: () => void;
   onOpenConsultation: () => void;
   onOpenMenu?: () => void;
+  onOpenLocation?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,9 +19,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCart,
   onOpenConsultation,
   onOpenMenu,
+  onOpenLocation,
 }) => {
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const { pathname } = useLocation();
+  const { pathname } = useRouterLocation();
+  const { city } = useDeliveryLocation();
   const isHome = pathname === "/";
 
   React.useEffect(() => {
@@ -67,6 +71,14 @@ export const Header: React.FC<HeaderProps> = ({
           </Link>
 
           <div className="flex-1 flex items-center justify-end gap-3">
+            <button
+              onClick={onOpenLocation}
+              className={`p-2 transition-all cursor-pointer flex items-center justify-center rounded-xl hover:opacity-75 ${bgHoverClass}`}
+              title="Delivery location"
+              aria-label="Select delivery location"
+            >
+              <MapPin className="w-5 h-5 currentColor" />
+            </button>
             <button
               id="header-cart-btn"
               onClick={onOpenCart}
@@ -130,6 +142,17 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
 
           <div className="flex items-center justify-end gap-5 md:gap-6 shrink-0">
+            <button
+              onClick={onOpenLocation}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl transition-all cursor-pointer ${bgHoverClass}`}
+              title="Delivery location"
+              aria-label="Select delivery location"
+            >
+              <MapPin className="w-4 h-4" />
+              <span className="max-w-[120px] truncate">
+                {city ? `Delivery to ${city}` : 'Set delivery location'}
+              </span>
+            </button>
             <Link
               to="/sell"
               className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-xl transition-all cursor-pointer ${

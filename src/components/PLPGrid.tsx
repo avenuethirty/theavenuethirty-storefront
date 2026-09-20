@@ -5,15 +5,19 @@ import { Check, Plus } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { SkeletonCard } from "./SkeletonCard";
 import { getDiscountBadge } from "../utils/discount";
+import { EmptyState } from "./EmptyState";
 
 interface PLPGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
   onOpenConsultation: () => void;
   loading?: boolean;
+  emptyTitle?: string;
+  emptySubtitle?: string;
+  emptyAction?: { label: string; href: string };
 }
 
-export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation, loading = false }) => {
+export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation, loading = false, emptyTitle = "No products match your filters", emptySubtitle = "Try adjusting your selection.", emptyAction }) => {
   const { plp } = SHOP_CONFIG;
   const itemsPerPage = plp.itemsPerPage;
 
@@ -32,9 +36,7 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
   if (products.length === 0) {
     return (
       <div className="text-center py-16">
-        <p className="text-[#1A1A1A]/50 font-sans text-sm">
-          No products match your filters. Try adjusting your selection.
-        </p>
+        <EmptyState title={emptyTitle} subtitle={emptySubtitle} action={emptyAction} />
       </div>
     );
   }
@@ -74,6 +76,7 @@ const PLPGridContent: React.FC<PLPGridProps> = ({ products, onAddToCart }) => {
   };
 
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
+  const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
 
   const handleAdd = (product: Product) => {
     onAddToCart(product);
@@ -98,10 +101,12 @@ const PLPGridContent: React.FC<PLPGridProps> = ({ products, onAddToCart }) => {
               key={product.id}
               className="group flex flex-col cursor-pointer"
               onClick={() => handleAdd(product)}
+              onMouseEnter={() => setHoveredProductId(product.id)}
+              onMouseLeave={() => setHoveredProductId(null)}
             >
               <div className="relative aspect-square w-full bg-[#EFEFEF] overflow-hidden flex items-center justify-center p-0 mb-4 transition-colors group-hover:bg-[#E8E8E8]">
                 <img
-                  src={product.imageUrl}
+                  src={hoveredProductId === product.id && product.imageUrl2 ? product.imageUrl2 : product.imageUrl}
                   alt={product.name}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"

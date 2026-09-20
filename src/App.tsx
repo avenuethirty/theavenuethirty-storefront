@@ -9,6 +9,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './components/CategoryPage';
+import { CollectionPage } from './pages/CollectionPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { FaqPage } from './pages/FaqPage';
@@ -16,6 +17,8 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { SellPage } from './pages/SellPage';
 import { Product, CartItem } from './types';
 import { fetchCatalogue } from './utils/catalogue';
+import { LocationProvider } from './context/LocationContext';
+import { LocationModal } from './components/LocationModal';
 
 export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -24,6 +27,7 @@ export default function App() {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLocationOpen, setIsLocationOpen] = useState(false);
 
   const navigate = useNavigate();
   const lenisRef = useRef<Lenis | null>(null);
@@ -120,12 +124,14 @@ export default function App() {
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
+    <LocationProvider>
+      <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
       <Header
         cartCount={cartCount}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenConsultation={() => handleOpenAiChat()}
         onOpenMenu={() => setIsMenuOpen(true)}
+        onOpenLocation={() => setIsLocationOpen(true)}
       />
 
       <main>
@@ -152,6 +158,7 @@ export default function App() {
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/sell" element={<SellPage />} />
+          <Route path="/:collectionSlug" element={<CollectionPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
         </Routes>
       </main>
 
@@ -170,6 +177,9 @@ export default function App() {
         onClose={() => setIsMenuOpen(false)}
         onOpenConsultation={() => handleOpenAiChat()}
       />
-    </div>
+
+      <LocationModal isOpen={isLocationOpen} onClose={() => setIsLocationOpen(false)} />
+      </div>
+    </LocationProvider>
   );
 }

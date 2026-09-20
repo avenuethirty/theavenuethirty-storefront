@@ -98,6 +98,8 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   const unitPrice = get('Unit price');
   const discountedPrice = get('Discounted Price');
   const imageUrl = get('Image Url');
+  const imageUrl2 = get('Image2 Url');
+  const imageUrl3 = get('Image3 Url');
   const description = get('Product description');
   const collections = get('Collections');
   const status = get('Status');
@@ -134,6 +136,8 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
     priceMonthly,
     originalPrice,
     imageUrl: imageUrl || '',
+    imageUrl2: imageUrl2 || undefined,
+    imageUrl3: imageUrl3 || undefined,
     description: description || name,
     collections: collectionList.length > 0 ? collectionList : undefined,
   };

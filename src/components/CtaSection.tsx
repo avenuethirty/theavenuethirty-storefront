@@ -9,7 +9,7 @@ export const CtaSection: React.FC = () => {
   return (
     <section id="cta-section" className="py-12 bg-[#FAFAF9] text-[#1A1A1A] w-full px-[10px]">
       <div
-        className="w-full h-[700px] text-white p-8 md:p-12 rounded-3xl flex flex-col items-start justify-between gap-6 bg-cover bg-center relative overflow-hidden"
+        className="w-full h-[600px] text-white p-8 md:p-12 rounded-3xl flex flex-col items-start justify-between gap-6 bg-cover bg-center relative overflow-hidden"
         style={{
           backgroundImage:
             "url('https://i.postimg.cc/HLZwpk2S/cta-01.webp')",

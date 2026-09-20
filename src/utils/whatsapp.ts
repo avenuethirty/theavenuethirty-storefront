@@ -1,10 +1,5 @@
-export interface GuestDetails {
-  fullName: string;
-  phone: string;
-  address: string;
-  city: string;
-  notes?: string;
-}
+import { SHOP_CONFIG } from '../config/shop';
+import { GuestDetails } from '../types';
 
 export interface CartItem {
   product: {
@@ -22,8 +17,6 @@ export interface WhatsAppPayload {
   guest: GuestDetails;
   storePhone: string;
 }
-
-import { SHOP_CONFIG } from '../config/shop';
 
 export function buildWhatsAppLink({
   orderId,
@@ -51,7 +44,7 @@ export function buildWhatsAppLink({
       "Delivery Details:",
       `Name: ${guest.fullName}`,
       `Phone: ${guest.phone}`,
-      `Address: ${guest.address}, ${guest.city}`,
+      `Address: ${guest.address}, ${guest.city}${guest.postalCode ? `, ${guest.postalCode}` : ''}`,
       guest.notes ? `Notes: ${guest.notes}` : "",
       "",
       "Please confirm availability and delivery timeline. Thank you!",

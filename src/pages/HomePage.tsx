@@ -1,14 +1,24 @@
 import React from 'react';
 import { HeroSection } from '../components/HeroSection';
 import { CategoryCardsSection } from '../components/CategoryCardsSection';
+import { CollectionCardsSection } from '../components/CollectionCardsSection';
 import { ProductRail } from '../components/ProductRail';
 import { TypeSection } from '../components/TypeSection';
 import { HowItWorks } from '../components/HowItWorks';
 import { CtaSection } from '../components/CtaSection';
-import { SystemApproachSection } from '../components/SystemApproachSection';
-import { AboutUsSection } from '../components/AboutUsSection';
 import { TikTokTestimonials } from '../components/TikTokTestimonials';
 import { Product } from '../types';
+import { SHOP_CONFIG } from '../config/shop';
+import { getCollectionBySlug, matchCollection } from '../utils/collections';
+import { LazyMount } from '../components/LazyMount';
+
+type HomepageSequenceItem = {
+  type: 'rail';
+  collection: string;
+} | {
+  type: 'types';
+  category: string;
+};
 
 interface HomePageProps {
   onStartAiChat: (query?: string) => void;
@@ -25,22 +35,39 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const catalogue = products || [];
 
-  // Carousel sections are driven by catalogue status labels
-  // (Collections column on the sheet): 'Featured', 'Best Seller',
-  // 'Trending', 'Sale', 'New Arrival', 'Must-Have Styles', 'Recommended'.
-  // Sections with no matching products are hidden entirely.
-  const byStatus = (status: string) =>
-    catalogue.filter((p) =>
-      p.collections?.some((c) => c.toLowerCase() === status.toLowerCase())
+  const getCollectionProducts = (slug: string) => {
+    const collection = getCollectionBySlug(slug);
+    if (!collection) return [];
+    return matchCollection(catalogue, collection.match);
+  };
+
+  const renderSequenceItem = (item: HomepageSequenceItem, index: number) => {
+    const content = (
+      <div>
+        {item.type === 'rail' && (() => {
+          const collection = getCollectionBySlug(item.collection);
+          const railProducts = getCollectionProducts(item.collection);
+          return (
+            <ProductRail
+              id={item.collection}
+              title={collection?.title || item.collection}
+              products={railProducts}
+              onAddToCart={onAddToCart}
+              catalogueReady={catalogueReady}
+              viewAllHref={`/${item.collection}`}
+              viewAllLabel="View All"
+            />
+          );
+        })()}
+        {item.type === 'types' && (
+          <TypeSection category={item.category} products={catalogue} />
+        )}
+      </div>
     );
 
-  const mustHave = byStatus('Must-Have Styles');
-  const bestSeller = byStatus('Best Seller');
-  const featured = byStatus('Featured');
-  const onSale = byStatus('Sale');
-  const recommended = byStatus('Recommended');
-  const trending = byStatus('Trending');
-  const newArrival = byStatus('New Arrival');
+    if (index === 0) return content;
+    return <LazyMount key={index}>{content}</LazyMount>;
+  };
 
   return (
     <main className="relative w-full">
@@ -50,70 +77,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       <div className="relative bg-[#FAFAF9]">
         <CategoryCardsSection products={catalogue} />
-        <SystemApproachSection />
-        <AboutUsSection />
+        <CollectionCardsSection products={catalogue} />
 
-        <ProductRail
-          id="must-have"
-          title="Must-Have Styles"
-          products={mustHave}
-          onAddToCart={onAddToCart}
-          catalogueReady={catalogueReady}
-        />
-
-        <ProductRail
-          id="best-seller"
-          title="Best Seller"
-          products={bestSeller}
-          onAddToCart={onAddToCart}
-          catalogueReady={catalogueReady}
-        />
-
-        <TypeSection category="bags" products={catalogue} />
-
-        <ProductRail
-          id="on-sale"
-          title="On Sale"
-          products={onSale}
-          onAddToCart={onAddToCart}
-          catalogueReady={catalogueReady}
-        />
-
-        <TypeSection category="jewellery" products={catalogue} />
-
-        <ProductRail
-          id="trending"
-          title="Trending"
-          products={trending}
-          onAddToCart={onAddToCart}
-          catalogueReady={catalogueReady}
-        />
-
-        <ProductRail
-          id="featured"
-          title="Featured"
-          products={featured}
-          onAddToCart={onAddToCart}
-          catalogueReady={catalogueReady}
-        />
-
-        <TypeSection category="toys" products={catalogue} />
-
-        <ProductRail
-          id="new-arrival"
-          title="New Arrival"
-          products={newArrival}
-          onAddToCart={onAddToCart}
-          catalogueReady={catalogueReady}
-        />
-
-        <ProductRail
-          id="recommended"
-          title="Recommended"
-          products={recommended}
-          onAddToCart={onAddToCart}
-          catalogueReady={catalogueReady}
-        />
+        {SHOP_CONFIG.homepage.sequence.map((item, index) =>
+          renderSequenceItem(item, index)
+        )}
 
         <HowItWorks />
 

@@ -12,6 +12,8 @@ interface ProductRailProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
   catalogueReady?: boolean;
+  viewAllHref?: string;
+  viewAllLabel?: string;
 }
 
 // Responsive grid class lookup tables (Tailwind v4 needs static class strings).
@@ -47,9 +49,10 @@ const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
 
 const DEFAULT_GRID = { mobile: 1, tablet: 2, desktop: 4 };
 
-export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, products, onAddToCart, catalogueReady = true }) => {
+export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, products, onAddToCart, catalogueReady = true, viewAllHref, viewAllLabel }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
+  const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
 
   // Grid settings for this carousel section; falls back to defaults.
   const grid = (id && SHOP_CONFIG.carouselGrid[id as keyof typeof SHOP_CONFIG.carouselGrid]) || undefined;
@@ -105,14 +108,26 @@ export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, p
       <div className="w-full px-[10px]">
 
         {/* Section Header - keeps 24px gap to cards when nav controls are hidden */}
-        <h2 className={`text-3xl sm:text-5xl font-light tracking-tight text-[#1A1A1A] font-sans ${totalPages > 1 ? '' : 'mb-6'}`}>
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="mt-4 text-sm sm:text-base text-[#5E5E5E] max-w-xl leading-relaxed">
-            {subtitle}
-          </p>
-        )}
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-[#1A1A1A] font-sans">
+              {title}
+            </h2>
+            {subtitle && (
+              <p className="mt-4 text-sm sm:text-base text-[#5E5E5E] max-w-xl leading-relaxed">
+                {subtitle}
+              </p>
+            )}
+          </div>
+          {viewAllHref && viewAllLabel && (
+            <a
+              href={viewAllHref}
+              className="text-xs tracking-widest font-sans uppercase text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors"
+            >
+              {viewAllLabel}
+            </a>
+          )}
+        </div>
 
         {/* Navigation Controls (PREVIOUS / NEXT top right) - hidden when all items fit on one page */}
         {totalPages > 1 && (
@@ -143,11 +158,13 @@ export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, p
                 key={product.id}
                 className="group flex flex-col cursor-pointer"
                 onClick={() => handleAdd(product)}
+                onMouseEnter={() => setHoveredProductId(product.id)}
+                onMouseLeave={() => setHoveredProductId(null)}
               >
                 {/* Product Image Studio Container (1:1 scale) */}
                 <div className="relative aspect-square w-full bg-[#EFEFEF] overflow-hidden flex items-center justify-center p-0 mb-4 transition-colors group-hover:bg-[#E8E8E8]">
                   <img
-                    src={product.imageUrl}
+                    src={hoveredProductId === product.id && product.imageUrl2 ? product.imageUrl2 : product.imageUrl}
                     alt={product.name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"

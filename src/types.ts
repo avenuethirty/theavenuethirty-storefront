@@ -18,6 +18,8 @@ export interface Product {
   rating?: number;
   reviewsCount?: number;
   imageUrl: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
   keyIngredients?: string[];
   description: string;
   bestFor?: string[];
@@ -36,6 +38,7 @@ export interface GuestDetails {
   phone: string;
   address: string;
   city: string;
+  postalCode?: string;
   notes?: string;
 }
 
