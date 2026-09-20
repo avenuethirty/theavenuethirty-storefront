@@ -23,7 +23,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
     }
   }, [isOpen, city, postalCode]);
 
-  const popularCities = PAKISTAN_CITIES.slice(0, 8);
+  const popularCities = PAKISTAN_CITIES.slice(0, 8).filter((c) => c.name.toLowerCase() !== city.toLowerCase());
 
   const filtered = useMemo(() => {
     if (!search.trim()) return PAKISTAN_CITIES;
@@ -99,6 +99,14 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
 
               {error && (
                 <p className="text-[11px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+              )}
+
+              {city && !error && (
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1.5 text-[11px] font-medium rounded-full border bg-[#1A1A1A] text-white border-[#1A1A1A]">
+                    {city}
+                  </span>
+                </div>
               )}
 
               <div>

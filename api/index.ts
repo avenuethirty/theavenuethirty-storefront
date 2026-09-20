@@ -570,6 +570,32 @@ app.post('/api/sell', async (req, res) => {
   }
 });
 
+app.get('/api/location/detect', async (req, res) => {
+  try {
+    const apiKey = process.env.BDC_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ success: false, error: 'Missing BDC_API_KEY' });
+    }
+
+    const response = await fetch(`https://api.bigdatacloud.net/data/ip-geolocation?key=${encodeURIComponent(apiKey)}`);
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(response.status).json({ success: false, error: `BigDataCloud API error: ${response.status}` });
+    }
+
+    const data = await response.json();
+    res.json({
+      success: true,
+      city: data?.location?.city || data?.city || '',
+      postalCode: data?.location?.postalCode || data?.postalCode || '',
+      countryCode: data?.countryCode || '',
+    });
+  } catch (err: any) {
+    console.error('Location detection error:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Unknown location detection error' });
+  }
+});
+
 export default async (req: any, res: any) => {
   app(req, res);
 };

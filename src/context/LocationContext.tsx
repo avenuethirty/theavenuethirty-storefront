@@ -68,13 +68,15 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsDetecting(true);
     setError(null);
     try {
-      const apiKey = import.meta.env.VITE_BDC_API_KEY;
-      if (!apiKey) {
-        throw new Error('Missing VITE_BDC_API_KEY');
+      const res = await fetch('/api/location/detect');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Location detection failed (${res.status}). Check your BDC_API_KEY and network, or choose a city manually.`);
       }
-      const res = await fetch(`https://api.bigdatacloud.net/data/ip-geolocation-client?key=${encodeURIComponent(apiKey)}`);
-      if (!res.ok) throw new Error(`Location detection failed (${res.status}). Check your BDC_API_KEY and network, or choose a city manually.`);
       const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Location detection failed');
+      }
       const detectedCity = data.city || '';
       const detectedPostal = data.postalCode || '';
       const matched = PAKISTAN_CITIES.find((c) => c.name.toLowerCase() === detectedCity.toLowerCase());
