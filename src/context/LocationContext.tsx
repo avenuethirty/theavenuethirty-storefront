@@ -137,18 +137,6 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [persist]);
 
-  useEffect(() => {
-    try {
-      const storedDetectedAt = safeGet(STORAGE_KEY_DETECTED_AT);
-      const shouldAutoDetect = !storedDetectedAt || (Date.now() - new Date(storedDetectedAt).getTime() > 24 * 60 * 60 * 1000);
-      if (shouldAutoDetect && !city) {
-        detect();
-      }
-    } catch {
-      // storage unavailable
-    }
-  }, [city, detect]);
-
   const setLocation = useCallback((newCity: string, newPostal?: string) => {
     persist(newCity, newPostal, new Date().toISOString());
   }, [persist]);

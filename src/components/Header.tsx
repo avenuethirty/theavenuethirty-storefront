@@ -149,9 +149,9 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label="Select delivery location"
             >
               <MapPin className="w-4 h-4" />
-              <span className="max-w-[120px] truncate">
-                {city ? `Delivery to ${city}` : 'Set delivery location'}
-              </span>
+                <span className="max-w-[120px] truncate">
+                  {city ? `Delivery to ${city}` : 'Select Location'}
+                </span>
             </button>
             <Link
               to="/sell"
