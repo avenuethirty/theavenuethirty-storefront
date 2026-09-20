@@ -457,6 +457,55 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
     }
   });
 
+  app.get('/api/location/reverse-geocode', async (req, res) => {
+    try {
+      const { latitude, longitude } = req.query;
+      const apiKey = process.env.BDC_API_KEY;
+
+      if (!apiKey) {
+        return res.status(500).json({ success: false, error: 'Missing BDC_API_KEY' });
+      }
+
+      const lat = typeof latitude === 'string' ? latitude.trim() : '';
+      const lng = typeof longitude === 'string' ? longitude.trim() : '';
+
+      if (!lat || !lng) {
+        return res.status(400).json({ success: false, error: 'Missing latitude or longitude' });
+      }
+
+      const response = await fetch(
+        `https://api-bdc.net/data/reverse-geocode?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=en&key=${encodeURIComponent(apiKey)}`
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+        return res.status(response.status).json({ success: false, error: `Reverse geocode failed: ${response.status}` });
+      }
+
+      const data = await response.json();
+      const countryCode = (data?.countryCode || '').trim().toUpperCase();
+      if (countryCode && countryCode !== 'PK') {
+        return res.status(200).json({
+          success: false,
+          error: `Detected country is ${countryCode}. Please select your Pakistan city manually.`,
+          city: data?.city || data?.locality || '',
+          postalCode: data?.postalCode || '',
+          countryCode,
+        });
+      }
+
+      res.json({
+        success: true,
+        city: data?.city || data?.locality || '',
+        postalCode: data?.postalCode || '',
+        countryCode,
+      });
+    } catch (err: any) {
+      console.error('Reverse geocode error:', err);
+      res.status(500).json({ success: false, error: err?.message || 'Unknown reverse geocode error' });
+    }
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createServer({
       server: { middlewareMode: true },

@@ -68,22 +68,68 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsDetecting(true);
     setError(null);
     try {
-      const res = await fetch('/api/location/detect');
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Location detection failed (${res.status}). Check your BDC_API_KEY and network, or choose a city manually.`);
+      let usedFallback = false;
+
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            });
+          });
+
+          const { latitude, longitude } = position.coords;
+          const geoRes = await fetch(`/api/location/reverse-geocode?latitude=${encodeURIComponent(String(latitude))}&longitude=${encodeURIComponent(String(longitude))}`);
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData.success && geoData.city) {
+              const detectedCity = geoData.city || '';
+              const detectedPostal = geoData.postalCode || '';
+              const matched = PAKISTAN_CITIES.find((c) => c.name.toLowerCase() === detectedCity.toLowerCase());
+              const normalizedCity = matched ? matched.name : detectedCity;
+              const normalizedPostal = matched?.postalCode || detectedPostal || undefined;
+              const detectedAt = new Date().toISOString();
+              persist(normalizedCity, normalizedPostal, detectedAt);
+              return;
+            }
+            if (!geoData.success && geoData.error) {
+              setError(geoData.error);
+              setIsDetecting(false);
+              return;
+            }
+          }
+        } catch (gpsErr: any) {
+          const message = gpsErr?.message || '';
+          if (message.includes('User denied') || message.includes('Permission denied') || message.includes('timeout')) {
+            usedFallback = true;
+          } else {
+            throw gpsErr;
+          }
+        }
+      } else {
+        usedFallback = true;
       }
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Location detection failed');
+
+      if (usedFallback) {
+        const res = await fetch('/api/location/detect');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Location detection failed (${res.status}). Check your BDC_API_KEY and network, or choose a city manually.`);
+        }
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Location detection failed');
+        }
+        const detectedCity = data.city || '';
+        const detectedPostal = data.postalCode || '';
+        const matched = PAKISTAN_CITIES.find((c) => c.name.toLowerCase() === detectedCity.toLowerCase());
+        const normalizedCity = matched ? matched.name : detectedCity;
+        const normalizedPostal = matched?.postalCode || detectedPostal || undefined;
+        const detectedAt = new Date().toISOString();
+        persist(normalizedCity, normalizedPostal, detectedAt);
       }
-      const detectedCity = data.city || '';
-      const detectedPostal = data.postalCode || '';
-      const matched = PAKISTAN_CITIES.find((c) => c.name.toLowerCase() === detectedCity.toLowerCase());
-      const normalizedCity = matched ? matched.name : detectedCity;
-      const normalizedPostal = matched?.postalCode || detectedPostal || undefined;
-      const detectedAt = new Date().toISOString();
-      persist(normalizedCity, normalizedPostal, detectedAt);
     } catch (err: any) {
       setError(err?.message || 'Unable to detect location');
     } finally {
