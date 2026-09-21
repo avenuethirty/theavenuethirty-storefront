@@ -14,6 +14,7 @@ import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { FaqPage } from './pages/FaqPage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { ReturnPolicyPage } from './pages/ReturnPolicyPage';
 import { SellPage } from './pages/SellPage';
 import { Product, CartItem } from './types';
 import { fetchCatalogue } from './utils/catalogue';
@@ -157,6 +158,7 @@ export default function App() {
           <Route path="/contact" element={<ContactPage onOpenConsultation={(query) => handleOpenAiChat(query)} />} />
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/return-policy" element={<ReturnPolicyPage />} />
           <Route path="/sell" element={<SellPage />} />
           <Route path="/:collectionSlug" element={<CollectionPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} onOpenLocation={() => setIsLocationOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
         </Routes>
