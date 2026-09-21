@@ -2,18 +2,16 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { PAKISTAN_CITIES } from '../utils/pakistanCities';
 
 const STORAGE_KEY_CITY = 'ta30_location_city';
-const STORAGE_KEY_POSTAL = 'ta30_location_postalCode';
 const STORAGE_KEY_DETECTED_AT = 'ta30_location_detectedAt';
 
 interface LocationState {
   city: string;
-  postalCode?: string;
   isDetecting: boolean;
   error: string | null;
 }
 
 interface LocationContextValue extends LocationState {
-  setLocation: (city: string, postalCode?: string) => void;
+  setLocation: (city: string) => void;
   detect: () => Promise<void>;
   clear: () => void;
 }
@@ -46,19 +44,12 @@ const safeRemove = (key: string) => {
 
 export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [city, setCity] = useState<string>(() => safeGet(STORAGE_KEY_CITY) || '');
-  const [postalCode, setPostalCode] = useState<string | undefined>(() => safeGet(STORAGE_KEY_POSTAL) || undefined);
   const [isDetecting, setIsDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const persist = useCallback((newCity: string, newPostal?: string, detectedAt?: string) => {
+  const persist = useCallback((newCity: string, detectedAt?: string) => {
     setCity(newCity);
-    setPostalCode(newPostal);
     safeSet(STORAGE_KEY_CITY, newCity);
-    if (newPostal) {
-      safeSet(STORAGE_KEY_POSTAL, newPostal);
-    } else {
-      safeRemove(STORAGE_KEY_POSTAL);
-    }
     if (detectedAt) {
       safeSet(STORAGE_KEY_DETECTED_AT, detectedAt);
     }
@@ -86,12 +77,10 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             const geoData = await geoRes.json();
             if (geoData.success && geoData.city) {
               const detectedCity = geoData.city || '';
-              const detectedPostal = geoData.postalCode || '';
               const matched = PAKISTAN_CITIES.find((c) => c.name.toLowerCase() === detectedCity.toLowerCase());
               const normalizedCity = matched ? matched.name : detectedCity;
-              const normalizedPostal = matched?.postalCode || detectedPostal || undefined;
               const detectedAt = new Date().toISOString();
-              persist(normalizedCity, normalizedPostal, detectedAt);
+              persist(normalizedCity, detectedAt);
               return;
             }
             if (!geoData.success && geoData.error) {
@@ -123,12 +112,10 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           throw new Error(data.error || 'Location detection failed');
         }
         const detectedCity = data.city || '';
-        const detectedPostal = data.postalCode || '';
         const matched = PAKISTAN_CITIES.find((c) => c.name.toLowerCase() === detectedCity.toLowerCase());
         const normalizedCity = matched ? matched.name : detectedCity;
-        const normalizedPostal = matched?.postalCode || detectedPostal || undefined;
         const detectedAt = new Date().toISOString();
-        persist(normalizedCity, normalizedPostal, detectedAt);
+        persist(normalizedCity, detectedAt);
       }
     } catch (err: any) {
       setError(err?.message || 'Unable to detect location');
@@ -137,21 +124,19 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [persist]);
 
-  const setLocation = useCallback((newCity: string, newPostal?: string) => {
-    persist(newCity, newPostal, new Date().toISOString());
+  const setLocation = useCallback((newCity: string) => {
+    persist(newCity, new Date().toISOString());
   }, [persist]);
 
   const clear = useCallback(() => {
     setCity('');
-    setPostalCode(undefined);
     setError(null);
     safeRemove(STORAGE_KEY_CITY);
-    safeRemove(STORAGE_KEY_POSTAL);
     safeRemove(STORAGE_KEY_DETECTED_AT);
   }, []);
 
   return (
-    <LocationContext.Provider value={{ city, postalCode, isDetecting, error, setLocation, detect, clear }}>
+    <LocationContext.Provider value={{ city, isDetecting, error, setLocation, detect, clear }}>
       {children}
     </LocationContext.Provider>
   );

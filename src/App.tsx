@@ -150,15 +150,15 @@ export default function App() {
               />
             }
           />
-          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
-          <Route path="/product/:slug/:typeSlug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
+          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} onOpenLocation={() => setIsLocationOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
+          <Route path="/product/:slug/:typeSlug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} onOpenLocation={() => setIsLocationOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
           <Route path="/ai-shopping" element={<AiChatPage onAddToCart={handleAddToCart} products={catalogue} />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage onOpenConsultation={(query) => handleOpenAiChat(query)} />} />
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/sell" element={<SellPage />} />
-          <Route path="/:collectionSlug" element={<CollectionPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
+          <Route path="/:collectionSlug" element={<CollectionPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} onOpenLocation={() => setIsLocationOpen(true)} products={catalogue} catalogueReady={catalogueReady} />} />
         </Routes>
       </main>
 

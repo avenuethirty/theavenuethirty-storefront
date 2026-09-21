@@ -15,6 +15,7 @@ interface CategoryPageProps {
   onOpenConsultation: () => void;
   cartCount: number;
   onOpenCart: () => void;
+  onOpenLocation: () => void;
   products?: Product[];
   catalogueReady?: boolean;
 }
@@ -24,6 +25,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   onOpenConsultation,
   cartCount,
   onOpenCart,
+  onOpenLocation,
   products,
   catalogueReady = true,
 }) => {
@@ -90,6 +92,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         cartCount={cartCount}
         onOpenCart={onOpenCart}
         onOpenConsultation={onOpenConsultation}
+        onOpenLocation={onOpenLocation}
       />
 
       <main className="pt-24">

@@ -10,18 +10,16 @@ interface LocationModalProps {
 }
 
 export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose }) => {
-  const { city, postalCode, isDetecting, error, setLocation, detect } = useDeliveryLocation();
+  const { city, isDetecting, error, setLocation, detect } = useDeliveryLocation();
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState(city);
-  const [selectedPostal, setSelectedPostal] = useState(postalCode || '');
 
   useEffect(() => {
     if (isOpen) {
       setSelectedCity(city);
-      setSelectedPostal(postalCode || '');
       setSearch('');
     }
-  }, [isOpen, city, postalCode]);
+  }, [isOpen, city]);
 
   const popularCities = PAKISTAN_CITIES.slice(0, 8).filter((c) => c.name.toLowerCase() !== city.toLowerCase());
 
@@ -34,14 +32,13 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
   const handleSave = () => {
     if (!selectedCity.trim()) return;
     const matched = PAKISTAN_CITIES.find((c) => c.name.toLowerCase() === selectedCity.trim().toLowerCase());
-    setLocation(matched ? matched.name : selectedCity.trim(), matched?.postalCode || selectedPostal || undefined);
+    setLocation(matched ? matched.name : selectedCity.trim());
     onClose();
   };
 
   const handleDetect = async () => {
     await detect();
     setSelectedCity(city);
-    setSelectedPostal(postalCode || '');
   };
 
   return (
@@ -115,7 +112,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Enter city name or postal code..."
+                  placeholder="Enter city name..."
                   className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
                 />
               </div>
@@ -128,7 +125,6 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
                       key={c.name}
                       onClick={() => {
                         setSelectedCity(c.name);
-                        setSelectedPostal(c.postalCode || '');
                       }}
                       className={`px-3 py-1.5 text-[11px] font-medium rounded-full border transition-colors cursor-pointer ${
                         selectedCity.toLowerCase() === c.name.toLowerCase()
@@ -141,19 +137,6 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
                   ))}
                 </div>
               </div>
-
-              {selectedCity && (
-                <div>
-                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1.5">Postal Code (optional):</label>
-                  <input
-                    type="text"
-                    value={selectedPostal}
-                    onChange={(e) => setSelectedPostal(e.target.value)}
-                    placeholder="e.g. 51310"
-                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
-                  />
-                </div>
-              )}
             </div>
 
             <div className="px-6 py-4 border-t border-black/5 flex justify-end gap-3">

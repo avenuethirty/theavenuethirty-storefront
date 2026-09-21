@@ -38,17 +38,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   });
   const [orderId, setOrderId] = useState('');
   const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
-  const { city: detectedCity, postalCode: detectedPostal } = useDeliveryLocation();
+  const { city: detectedCity } = useDeliveryLocation();
 
   useEffect(() => {
     if (slide === 'delivery') {
       setGuest((prev) => ({
         ...prev,
         city: prev.city || detectedCity || '',
-        postalCode: prev.postalCode || detectedPostal || '',
       }));
     }
-  }, [slide, detectedCity, detectedPostal]);
+  }, [slide, detectedCity]);
 
   // Lock page scroll while the drawer is open (same pattern App.tsx uses for
   // the AI chat). Without this, Lenis scrolls the page behind the drawer when
@@ -316,26 +315,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     onChange={(e) => setGuest({ ...guest, city: e.target.value })}
                     className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
                   >
-                    <option value="">Select city</option>
-                    {PAKISTAN_CITIES.map((city) => (
-                      <option key={city.name} value={city.name}>
-                        {city.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Postal Code (optional)</label>
-                  <input
-                    type="text"
-                    value={guest.postalCode || ''}
-                    onChange={(e) => setGuest({ ...guest, postalCode: e.target.value })}
-                    className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-neutral-800 bg-white"
-                    placeholder="e.g. 51310"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Delivery Notes (optional)</label>
+                  <option value="">Select city</option>
+                  {PAKISTAN_CITIES.map((city) => (
+                    <option key={city.name} value={city.name}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-neutral-600 mb-1">Delivery Notes (optional)</label>
                   <textarea
                     value={guest.notes}
                     onChange={(e) => setGuest({ ...guest, notes: e.target.value })}

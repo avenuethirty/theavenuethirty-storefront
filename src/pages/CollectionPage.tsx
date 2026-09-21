@@ -15,6 +15,7 @@ interface CollectionPageProps {
   onOpenConsultation: () => void;
   cartCount: number;
   onOpenCart: () => void;
+  onOpenLocation: () => void;
   products?: Product[];
   catalogueReady?: boolean;
 }
@@ -24,6 +25,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
   onOpenConsultation,
   cartCount,
   onOpenCart,
+  onOpenLocation,
   products,
   catalogueReady = true,
 }) => {
@@ -57,7 +59,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
   if (!collection) {
     return (
       <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
-        <Header cartCount={cartCount} onOpenCart={onOpenCart} onOpenConsultation={onOpenConsultation} />
+        <Header cartCount={cartCount} onOpenCart={onOpenCart} onOpenConsultation={onOpenConsultation} onOpenLocation={onOpenLocation} />
         <main className="pt-24">
           <EmptyState
             title="Collection not found"

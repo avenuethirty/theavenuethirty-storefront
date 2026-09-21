@@ -38,7 +38,6 @@ export interface GuestDetails {
   phone: string;
   address: string;
   city: string;
-  postalCode?: string;
   notes?: string;
 }
 

@@ -44,7 +44,7 @@ export function buildWhatsAppLink({
       "Delivery Details:",
       `Name: ${guest.fullName}`,
       `Phone: ${guest.phone}`,
-      `Address: ${guest.address}, ${guest.city}${guest.postalCode ? `, ${guest.postalCode}` : ''}`,
+      `Address: ${guest.address}, ${guest.city}`,
       guest.notes ? `Notes: ${guest.notes}` : "",
       "",
       "Please confirm availability and delivery timeline. Thank you!",
