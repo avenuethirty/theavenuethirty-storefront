@@ -164,7 +164,7 @@ export default function App() {
         </Routes>
       </main>
 
-      <Footer />
+      {pathname !== '/ai-shopping' && <Footer />}
 
       <CartDrawer
         isOpen={isCartOpen}

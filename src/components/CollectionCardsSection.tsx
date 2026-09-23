@@ -99,9 +99,6 @@ export const CollectionCardsSection: React.FC<{ products: Product[] }> = ({ prod
                       {collection.subtitle}
                     </p>
                   )}
-                  <p className="text-xs sm:text-sm text-neutral-200 font-light">
-                    {collection.matchedProducts.length} {collection.matchedProducts.length === 1 ? 'product' : 'products'}
-                  </p>
                 </div>
               </motion.div>
             </Link>
