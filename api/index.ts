@@ -95,11 +95,12 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   const imageUrl = get('Image Url');
   const description = get('Product description');
   const collections = get('Collections');
-  const status = get('Status');
+  const status = get('Availability');
 
   if (!name) return null;
 
-  if (status.toLowerCase() !== 'active') return null;
+  const normalizedStatus = status.trim().toLowerCase();
+  if (normalizedStatus !== 'in_stock' && normalizedStatus !== 'preorder' && normalizedStatus !== 'backorder') return null;
 
   const parsePrice = (value: string) => {
     const cleaned = value.replace(/[^0-9.]/g, '');

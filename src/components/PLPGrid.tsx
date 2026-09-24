@@ -20,11 +20,13 @@ interface PLPGridProps {
 export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation, loading = false, emptyTitle = "No products match your filters", emptySubtitle = "Try adjusting your selection.", emptyAction }) => {
   const { plp } = SHOP_CONFIG;
   const itemsPerPage = plp.itemsPerPage;
+  const gridColumns = plp.gridColumns || { mobile: 2, tablet: 3, desktop: 4 };
+  const gridClass = `grid-cols-${gridColumns.mobile} sm:grid-cols-${gridColumns.tablet} lg:grid-cols-${gridColumns.desktop}`;
 
   if (loading) {
     return (
       <div className="w-full">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[10px]">
+        <div className={`grid ${gridClass} gap-[10px]`}>
           {Array.from({ length: itemsPerPage }, (_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -41,10 +43,10 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
     );
   }
 
-  return <PLPGridContent products={products} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} />;
+  return <PLPGridContent products={products} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} gridClass={gridClass} />;
 };
 
-const PLPGridContent: React.FC<PLPGridProps> = ({ products, onAddToCart }) => {
+const PLPGridContent: React.FC<PLPGridProps & { gridClass: string }> = ({ products, onAddToCart, gridClass }) => {
   const { plp } = SHOP_CONFIG;
   const itemsPerPage = plp.itemsPerPage;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -91,7 +93,7 @@ const PLPGridContent: React.FC<PLPGridProps> = ({ products, onAddToCart }) => {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[10px]">
+      <div className={`grid ${gridClass} gap-[10px]`}>
         {paginatedProducts.map((product) => {
           const isAdded = addedProductId === product.id;
           const discountBadge = getDiscountBadge(product);
