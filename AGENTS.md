@@ -41,6 +41,7 @@ Defined in `src/utils/category.ts` — 5 HubSpot-aligned keys: `clothing_apparel
 - `APP_URL` — optional, injected by AI Studio.
 - `.env` and `.env.local` contain secrets (including a real GROQ key and HubSpot token) — do not expose these. `.env.example` is tracked in git.
 - Non-sensitive store settings live in `src/config/shop.ts` (`SHOP_CONFIG`), including `typeSections` (per-category "Shop by type" homepage sections: format cards/pills, grid, limit, and per-type image/label/order overrides keyed by type slug; falls back to the type's first product image and count-desc order).
+- **Do not edit `src/config/shop.ts` unless explicitly asked.** Treat user-made config edits in that file as owned content, even if they appear incomplete or inconsistent. If a requested change requires schema or typing adjustments in `shop.ts`, make only the minimum necessary edits and do not revert or normalize unrelated config changes. **Never run `git checkout -- src/config/shop.ts`, `git restore src/config/shop.ts`, or any equivalent revert command on this file unless the user explicitly asks to discard their own edits.**
 
 ## Toolchain quirksks
 
