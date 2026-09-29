@@ -16,6 +16,7 @@ interface CollectionPageProps {
   cartCount: number;
   onOpenCart: () => void;
   onOpenLocation: () => void;
+  onNavigateToProduct?: (product: Product) => void;
   products?: Product[];
   catalogueReady?: boolean;
 }
@@ -26,6 +27,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
   cartCount,
   onOpenCart,
   onOpenLocation,
+  onNavigateToProduct,
   products,
   catalogueReady = true,
 }) => {
@@ -111,7 +113,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
 
         <div className="max-w-7xl mx-auto px-6 pb-24">
           {isLoading ? (
-            <PLPGrid products={[]} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} loading />
+            <PLPGrid products={[]} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} onNavigateToProduct={onNavigateToProduct} loading />
           ) : filtered.length === 0 ? (
             <EmptyState
               title={`No ${collection.title} available`}
@@ -119,7 +121,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
               action={{ label: "Continue Shopping", href: "/" }}
             />
           ) : (
-            <PLPGrid products={filtered} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} loading={false} />
+            <PLPGrid products={filtered} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} onNavigateToProduct={onNavigateToProduct} loading={false} />
           )}
         </div>
       </main>

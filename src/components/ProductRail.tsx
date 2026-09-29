@@ -11,6 +11,7 @@ interface ProductRailProps {
   subtitle?: string;
   products: Product[];
   onAddToCart: (product: Product) => void;
+  onNavigateToProduct?: (product: Product) => void;
   catalogueReady?: boolean;
   viewAllHref?: string;
   viewAllLabel?: string;
@@ -49,7 +50,7 @@ const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
 
 const DEFAULT_GRID = { mobile: 1, tablet: 2, desktop: 4 };
 
-export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, products, onAddToCart, catalogueReady = true, viewAllHref, viewAllLabel }) => {
+export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, products, onAddToCart, onNavigateToProduct, catalogueReady = true, viewAllHref, viewAllLabel }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
@@ -157,7 +158,7 @@ export const ProductRail: React.FC<ProductRailProps> = ({ id, title, subtitle, p
               <div
                 key={product.id}
                 className="group flex flex-col cursor-pointer"
-                onClick={() => handleAdd(product)}
+                onClick={() => onNavigateToProduct?.(product)}
                 onMouseEnter={() => setHoveredProductId(product.id)}
                 onMouseLeave={() => setHoveredProductId(null)}
               >

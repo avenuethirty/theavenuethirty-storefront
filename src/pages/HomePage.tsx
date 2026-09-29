@@ -23,6 +23,7 @@ type HomepageSequenceItem = {
 interface HomePageProps {
   onStartAiChat: (query?: string) => void;
   onAddToCart: (product: Product) => void;
+  onNavigateToProduct?: (product: Product) => void;
   products?: Product[];
   catalogueReady?: boolean;
 }
@@ -30,6 +31,7 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({
   onStartAiChat,
   onAddToCart,
+  onNavigateToProduct,
   products,
   catalogueReady = true,
 }) => {
@@ -53,6 +55,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               title={collection?.title || item.collection}
               products={railProducts}
               onAddToCart={onAddToCart}
+              onNavigateToProduct={onNavigateToProduct}
               catalogueReady={catalogueReady}
               viewAllHref={`/${item.collection}`}
               viewAllLabel="View All"

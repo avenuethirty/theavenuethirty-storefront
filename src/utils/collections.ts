@@ -35,9 +35,6 @@ export function matchCollection(products: Product[], match: {
     if (match.priceMax !== undefined && p.priceMonthly > match.priceMax) {
       return false;
     }
-    if (match.ratingMin !== undefined && (p.rating ?? 0) < match.ratingMin) {
-      return false;
-    }
-    return true;
+        return true;
   });
 }

@@ -103,6 +103,7 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   const description = get('Product description');
   const collections = get('Collections');
   const status = get('Availability');
+  const availability = get('Availability');
 
   if (!name) return null;
 
@@ -139,6 +140,7 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
     imageUrl: imageUrl || '',
     imageUrl2: imageUrl2 || undefined,
     imageUrl3: imageUrl3 || undefined,
+    availability,
     description: description || name,
     collections: collectionList.length > 0 ? collectionList : undefined,
   };
@@ -253,6 +255,19 @@ async function createApp() {
     } catch (err: any) {
       console.error('Catalogue endpoint error:', err?.message || err);
       res.status(500).json({ products: [], error: err?.message || 'Unknown error' });
+    }
+  });
+  app.get('/api/product/:id', async (req, res) => {
+    try {
+      const products = await getCatalogue();
+      const product = products.find((p) => p.id === req.params.id);
+      if (!product) {
+        return res.status(404).json({ success: false, error: 'Product not found' });
+      }
+      res.json({ success: true, product });
+    } catch (err: any) {
+      console.error('Product endpoint error:', err?.message || err);
+      res.status(500).json({ success: false, error: err?.message || 'Unknown error' });
     }
   });
 

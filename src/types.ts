@@ -13,16 +13,12 @@ export interface Product {
     | "toys";
   tagline: string;
   typeSlug?: string;
+  availability?: string;
   priceMonthly: number;
   originalPrice?: number;
-  rating?: number;
-  reviewsCount?: number;
   imageUrl: string;
   imageUrl2?: string;
-  imageUrl3?: string;
-  keyIngredients?: string[];
   description: string;
-  bestFor?: string[];
   collections?: string[];
 }
 

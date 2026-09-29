@@ -11,13 +11,14 @@ interface PLPGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
   onOpenConsultation: () => void;
+  onNavigateToProduct?: (product: Product) => void;
   loading?: boolean;
   emptyTitle?: string;
   emptySubtitle?: string;
   emptyAction?: { label: string; href: string };
 }
 
-export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation, loading = false, emptyTitle = "No products match your filters", emptySubtitle = "Try adjusting your selection.", emptyAction }) => {
+export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenConsultation, onNavigateToProduct, loading = false, emptyTitle = "No products match your filters", emptySubtitle = "Try adjusting your selection.", emptyAction }) => {
   const { plp } = SHOP_CONFIG;
   const itemsPerPage = plp.itemsPerPage;
   const gridColumns = plp.gridColumns || { mobile: 2, tablet: 3, desktop: 4 };
@@ -43,10 +44,10 @@ export const PLPGrid: React.FC<PLPGridProps> = ({ products, onAddToCart, onOpenC
     );
   }
 
-  return <PLPGridContent products={products} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} gridClass={gridClass} />;
+  return <PLPGridContent products={products} onAddToCart={onAddToCart} onOpenConsultation={onOpenConsultation} onNavigateToProduct={onNavigateToProduct} gridClass={gridClass} />;
 };
 
-const PLPGridContent: React.FC<PLPGridProps & { gridClass: string }> = ({ products, onAddToCart, gridClass }) => {
+const PLPGridContent: React.FC<PLPGridProps & { gridClass: string }> = ({ products, onAddToCart, onOpenConsultation, onNavigateToProduct, gridClass }) => {
   const { plp } = SHOP_CONFIG;
   const itemsPerPage = plp.itemsPerPage;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,7 +103,7 @@ const PLPGridContent: React.FC<PLPGridProps & { gridClass: string }> = ({ produc
             <div
               key={product.id}
               className="group flex flex-col cursor-pointer"
-              onClick={() => handleAdd(product)}
+              onClick={() => onNavigateToProduct?.(product)}
               onMouseEnter={() => setHoveredProductId(product.id)}
               onMouseLeave={() => setHoveredProductId(null)}
             >

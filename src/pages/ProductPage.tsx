@@ -1,0 +1,261 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Product } from '../types';
+import { SHOP_CONFIG } from '../config/shop';
+import { getDiscountBadge } from '../utils/discount';
+import { getCollectionBySlug, matchCollection } from '../utils/collections';
+import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
+import { Check, Plus } from 'lucide-react';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+
+interface ProductPageProps {
+  products: Product[];
+  catalogueReady: boolean;
+  onAddToCart: (product: Product) => void;
+  onOpenConsultation: () => void;
+}
+
+export const ProductPage: React.FC<ProductPageProps> = ({
+  products,
+  catalogueReady,
+  onAddToCart,
+  onOpenConsultation,
+}) => {
+  const { slug: categorySlug, typeSlug, productId } = useParams<{
+    slug: string;
+    typeSlug?: string;
+    productId: string;
+  }>();
+
+  const navigate = useNavigate();
+  const [added, setAdded] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const product = useMemo(() => products.find((p) => p.id === productId), [products, productId]);
+  const categoryLabel = useMemo(() => {
+    const cat = getCollectionBySlug(categorySlug || '');
+    return cat?.title || categorySlug || '';
+  }, [categorySlug]);
+
+  const typeLabel = useMemo(() => {
+    if (!product || !typeSlug) return null;
+    const match = products.find(
+      (p) => p.category === categorySlug && (p.typeSlug === typeSlug || toTypeSlug(p.tagline) === typeSlug)
+    );
+    return match ? formatTypeLabel(match.tagline) : null;
+  }, [product, typeSlug, categorySlug, products]);
+
+  const images = useMemo(() => {
+    if (!product) return [];
+    const imgs = [product.imageUrl];
+    if (product.imageUrl2) imgs.push(product.imageUrl2);
+    if (product.imageUrl3) imgs.push(product.imageUrl3);
+    return imgs;
+  }, [product]);
+
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [productId]);
+
+  useEffect(() => {
+    if (!product) return;
+    document.title = `${product.name} | The Avenue Thirty`;
+    return () => {
+      document.title = 'The Avenue Thirty — Curated Fashion & Skincare';
+    };
+  }, [product]);
+
+  useEffect(() => {
+    if (!product) return;
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute('content', product.description.slice(0, 160));
+    }
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      canonical.setAttribute('href', `https://theavenuethirty.com/product/${categorySlug}${typeSlug ? `/${typeSlug}` : ''}/${productId}`);
+    }
+  }, [product, categorySlug, typeSlug, productId]);
+
+  useEffect(() => {
+    if (!product) return;
+    const existing = document.getElementById('product-jsonld');
+    if (existing) existing.remove();
+
+    const availability = product.availability === 'in_stock' || product.availability === 'preorder' || product.availability === 'backorder'
+      ? 'https://schema.org/InStock'
+      : 'https://schema.org/OutOfStock';
+
+    const schema = {
+      '@context': 'https://schema.org/',
+      '@type': 'Product',
+      name: product.name,
+      description: product.description,
+      image: images,
+      offers: {
+        '@type': 'Offer',
+        price: product.priceMonthly,
+        priceCurrency: 'PKR',
+        availability,
+        url: `https://theavenuethirty.com/product/${categorySlug}${typeSlug ? `/${typeSlug}` : ''}/${productId}`,
+      },
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'product-jsonld';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      const el = document.getElementById('product-jsonld');
+      if (el) el.remove();
+    };
+  }, [product, images, categorySlug, typeSlug, productId]);
+
+  if (!catalogueReady) {
+    return (
+      <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
+        <main className="pt-24">
+          <div className="max-w-7xl mx-auto px-6 pb-24">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="aspect-square bg-[#EFEFEF] animate-pulse" />
+              <div className="space-y-4">
+                <div className="h-8 bg-[#EFEFEF] animate-pulse rounded" />
+                <div className="h-4 bg-[#EFEFEF] animate-pulse rounded w-1/2" />
+                <div className="h-4 bg-[#EFEFEF] animate-pulse rounded w-1/3" />
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
+        <main className="pt-24">
+          <div className="max-w-7xl mx-auto px-6 pb-24">
+            <h1 className="text-3xl md:text-4xl font-light tracking-tight">Product not found</h1>
+            <p className="mt-4 text-sm text-neutral-600">The product you are looking for does not exist or has been removed.</p>
+            <Link to="/" className="mt-6 inline-block text-sm font-semibold underline">Continue shopping</Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const discountBadge = getDiscountBadge(product);
+  const relatedProducts = useMemo(() => {
+    return products
+      .filter((p) => p.category === product.category && p.id !== product.id)
+      .slice(0, 4);
+  }, [products, product]);
+
+  const handleQuickAdd = () => {
+    onAddToCart(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  };
+
+  return (
+    <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
+      <main className="pt-24">
+        <div className="max-w-7xl mx-auto px-6 pb-24">
+          <Breadcrumbs
+            category={categorySlug}
+            typeLabel={typeLabel || undefined}
+            typeSlug={typeSlug}
+            productName={product.name}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="space-y-4">
+              <div className="aspect-square bg-[#EFEFEF] overflow-hidden">
+                <img
+                  src={images[currentImageIndex] || product.imageUrl}
+                  alt={product.name}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover object-center"
+                />
+              </div>
+              {images.length > 1 && (
+                <div className="flex gap-3">
+                  {images.map((src, idx) => (
+                    <button
+                      key={src}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`w-16 h-16 border overflow-hidden cursor-pointer ${
+                        currentImageIndex === idx ? 'border-[#1A1A1A]' : 'border-neutral-300'
+                      }`}
+                    >
+                      <img src={src} alt="" className="w-full h-full object-cover object-center" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col">
+              <h1 className="text-2xl md:text-3xl font-light tracking-tight">{product.name}</h1>
+              <div className="mt-4 flex items-baseline gap-3">
+                <span className="text-xl font-semibold">
+                  {SHOP_CONFIG.localization.currencySymbol}
+                  {product.priceMonthly.toFixed(2)}
+                </span>
+                {product.originalPrice && (
+                  <span className="text-sm text-neutral-500 line-through">
+                    {SHOP_CONFIG.localization.currencySymbol}
+                    {product.originalPrice.toFixed(2)}
+                  </span>
+                )}
+                {discountBadge && (
+                  <span className="text-sm font-semibold text-red-600">{discountBadge}</span>
+                )}
+              </div>
+
+              <p className="mt-6 text-sm text-neutral-700 leading-relaxed whitespace-pre-line">{product.description}</p>
+
+              <button
+                onClick={handleQuickAdd}
+                className="mt-8 w-full py-3 bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-widest hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                {added ? 'Added to Cart' : 'Quick Add to Cart'}
+              </button>
+
+              {relatedProducts.length > 0 && (
+                <div className="mt-12">
+                  <h2 className="text-lg font-light tracking-tight mb-4">You may also like</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-[10px]">
+                    {relatedProducts.map((rp) => (
+                      <Link
+                        key={rp.id}
+                        to={`/product/${rp.category}${rp.typeSlug ? `/${rp.typeSlug}` : ''}/${rp.id}`}
+                        className="group flex flex-col"
+                      >
+                        <div className="aspect-square bg-[#EFEFEF] overflow-hidden mb-2">
+                          <img
+                            src={rp.imageUrl}
+                            alt={rp.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                          />
+                        </div>
+                        <p className="text-xs font-semibold uppercase leading-tight line-clamp-2">{rp.name}</p>
+                        <span className="text-xs text-neutral-600 mt-1">
+                          {SHOP_CONFIG.localization.currencySymbol}
+                          {rp.priceMonthly.toFixed(2)}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};

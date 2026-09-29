@@ -43,10 +43,7 @@ export function useFilteredProducts(products: Product[], params: FilterState) {
     if (priceMax !== null && typeof priceMax === "number" && p.priceMonthly > priceMax) {
       return false;
     }
-    if (ratingMin !== null && typeof ratingMin === "number" && (p.rating ?? 0) < ratingMin) {
-      return false;
-    }
-    return true;
+        return true;
   });
 
   const sorted = [...filtered].sort((a, b) => {
