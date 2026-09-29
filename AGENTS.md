@@ -64,13 +64,31 @@ Defined in `src/utils/category.ts` — 5 HubSpot-aligned keys: `clothing_apparel
 
 `dist/` contains: `index.html`, `assets/` (client bundles), `server.cjs` + `server.cjs.map` (bundled Express server).
 
+## Server-side SEO
+
+- `src/server/seo.ts` is the canonical SEO module: `resolveSEOMetadata()` routes any path to a title/description/canonical/robots/OG/JSON-LD set, plus `injectSEO()` (placeholder replacement, HTML- and JSON-LD-escaped) and `buildSitemapXml()` / `buildRobotsTxt()`.
+- `server.ts` imports it. `api/index.ts` carries a **verbatim inlined copy** behind a banner comment — the serverless bundle cannot import from `src/`. The inlined copy freezes the category/collection registries as literals; keep them in sync with `src/config/shop.ts`.
+- `index.html` holds `<!--seo-*-->` placeholders plus static defaults for dev. `injectSEO()` strips the static `<title>`, description meta, and canonical first so a rendered route never ships duplicates.
+- Both servers register `/robots.txt` and `/sitemap.xml` before the static/catch-all middleware, and set `app.set('trust proxy', true)`. `vercel.json` rewrites both paths to `api/index.ts` — without that they fall through to the SPA rewrite.
+- `SITE_URL` (optional) overrides the origin used for canonicals, OG tags, and the sitemap. Fallback is the request origin.
+- Production `server.ts` uses `express.static(distPath, { index: false })` so `/` reaches the catch-all instead of serving raw static HTML.
+
+### Hard rule: no typographic dashes in SEO output
+
+Em dashes (and en dashes, minus signs, figure/non-breaking hyphens) are **banned** from every `<title>`, meta description, Open Graph/Twitter tag, and JSON-LD string this site renders. Separate title segments with `|` instead — `Tote Bag | Bags | The Avenue Thirty`, not `Tote Bag — Bags | The Avenue Thirty`.
+
+- `src/utils/seoText.ts` owns `SITE_NAME`, `DEFAULT_SITE_TITLE`, `sanitizeSeoText()`, and `pageTitle()`. Build every title with `pageTitle(...parts)` rather than a template literal, so the rule holds automatically.
+- `sanitizeSeoText()` normalizes banned dashes to a plain `-` and leaves existing ASCII hyphens alone (`Must-Have Styles` stays intact). It is applied in `resolveSEOMetadata()` (title, description, and deep through the schema object) and again in `renderSEOTags()` as a backstop, so even sheet-supplied product names and descriptions cannot leak one.
+- Client pages (`ProductPage`, `CategoryPage`, `CollectionPage`) route their `document.title` and meta-description writes through the same helpers.
+- The em dashes that remain in the repo are in code comments and in the truncation character class inside `clampText()` — both must stay as they are; only rendered output is governed by this rule.
+
 ## Vercel deployment
 
 - Vercel does not support a long-running Express process. Instead, `server.ts` is wrapped as a single serverless function via `api/index.ts`.
-- `vercel.json` rewrites `/api/*` to `api/index.ts` and all other routes to `/index.html` (SPA entry). `api/index.ts` is a self-contained Express app (all logic inlined — no imports from root `server.ts`, **and no relative imports outside `api/` at all**, e.g. `../src/...` — the traced lambda bundle will not include those files and every `/api/*` route dies with `FUNCTION_INVOCATION_FAILED`) to ensure Vercel's `@vercel/node` builder includes all code in the function package.
-- `server.ts` exports `createApp()` (returns the Express app). The `app.listen()` call is guarded by an ESM main-module check so it does not fire when imported by Vercel's runtime. `server.ts` is used only for local development (`npm run dev`).
+- `vercel.json` rewrites `/api/*`, `/sitemap.xml`, and `/robots.txt` to `api/index.ts`, and all other routes to `/index.html` (SPA entry). `api/index.ts` is a self-contained Express app (all logic inlined — no imports from root `server.ts`, **and no relative imports outside `api/` at all**, e.g. `../src/...` — the traced lambda bundle will not include those files and every `/api/*` route dies with `FUNCTION_INVOCATION_FAILED`) to ensure Vercel's `@vercel/node` builder includes all code in the function package.
+- `server.ts` exports `createApp()` (returns the Express app). The `app.listen()` call is guarded by a main-module check matching `server.ts`, `server.js`, **and** `server.cjs` (so `npm start` listens) that does not fire when imported by Vercel's runtime. `server.ts` is used only for local development and non-Vercel production hosts.
 - Local dev (`npm run dev`) is unaffected — it still runs `tsx server.ts` directly.
-- Vercel Dashboard env vars must include: `GROQ_API_KEY`, `HUBSPOT_ACCESS_TOKEN`, `GOOGLE_SHEET_CSV_URL`. Do not set removed `VITE_CIRCLE_*` vars.
+- Vercel Dashboard env vars must include: `GROQ_API_KEY`, `HUBSPOT_ACCESS_TOKEN`, `GOOGLE_SHEET_CSV_URL`, `BDC_API_KEY`. `SITE_URL` is optional but recommended for correct canonicals. Do not set removed `VITE_CIRCLE_*` vars.
 - Trade-off: the in-memory catalogue cache is lost on serverless cold starts. First request after idle refetches the Google Sheet (~1–2s).
 
 ## Operational modes

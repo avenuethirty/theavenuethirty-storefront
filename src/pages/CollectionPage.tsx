@@ -9,6 +9,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { parseFilterParams, useFilteredProducts } from "../hooks/useFilteredProducts";
 import { SHOP_CONFIG } from "../config/shop";
 import { EmptyState } from "../components/EmptyState";
+import { DEFAULT_SITE_TITLE, pageTitle, SITE_NAME } from "../utils/seoText";
 
 interface CollectionPageProps {
   onAddToCart: (product: Product) => void;
@@ -49,12 +50,12 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
 
   useEffect(() => {
     if (collection) {
-      document.title = `${collection.title} | The Avenue Thirty`;
+      document.title = pageTitle(collection.title, SITE_NAME);
     } else {
-      document.title = "Collection Not Found | The Avenue Thirty";
+      document.title = pageTitle("Collection Not Found", SITE_NAME);
     }
     return () => {
-      document.title = "The Avenue Thirty — Curated Fashion & Skincare";
+      document.title = DEFAULT_SITE_TITLE;
     };
   }, [collection]);
 

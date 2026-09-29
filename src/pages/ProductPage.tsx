@@ -5,6 +5,7 @@ import { SHOP_CONFIG } from '../config/shop';
 import { getDiscountBadge } from '../utils/discount';
 import { getCollectionBySlug, matchCollection } from '../utils/collections';
 import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
+import { DEFAULT_SITE_TITLE, pageTitle, sanitizeSeoText, SITE_NAME } from '../utils/seoText';
 import { Check, Plus } from 'lucide-react';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 
@@ -53,15 +54,27 @@ export const ProductPage: React.FC<ProductPageProps> = ({
     return imgs;
   }, [product]);
 
+  // Must stay above the `catalogueReady` / `!product` early returns below.
+  // A hook called after a conditional return changes the hook count between
+  // renders, and React 19 unmounts the whole tree on that mismatch — which is
+  // why a direct PDP URL or a refresh rendered blank while in-app navigation
+  // worked (the catalogue was already loaded on the first render).
+  const relatedProducts = useMemo(() => {
+    if (!product) return [];
+    return products
+      .filter((p) => p.category === product.category && p.id !== product.id)
+      .slice(0, 4);
+  }, [products, product]);
+
   useEffect(() => {
     setCurrentImageIndex(0);
   }, [productId]);
 
   useEffect(() => {
     if (!product) return;
-    document.title = `${product.name} | The Avenue Thirty`;
+    document.title = pageTitle(product.name, SITE_NAME);
     return () => {
-      document.title = 'The Avenue Thirty — Curated Fashion & Skincare';
+      document.title = DEFAULT_SITE_TITLE;
     };
   }, [product]);
 
@@ -69,7 +82,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
     if (!product) return;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', product.description.slice(0, 160));
+      meta.setAttribute('content', sanitizeSeoText(product.description).slice(0, 160));
     }
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) {
@@ -147,11 +160,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   }
 
   const discountBadge = getDiscountBadge(product);
-  const relatedProducts = useMemo(() => {
-    return products
-      .filter((p) => p.category === product.category && p.id !== product.id)
-      .slice(0, 4);
-  }, [products, product]);
 
   const handleQuickAdd = () => {
     onAddToCart(product);

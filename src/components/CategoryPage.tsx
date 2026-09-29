@@ -6,6 +6,7 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { FilterBar } from './FilterBar';
 import { getCategoryLabel } from '../utils/category';
 import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
+import { DEFAULT_SITE_TITLE, pageTitle, SITE_NAME } from '../utils/seoText';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { parseFilterParams, useFilteredProducts } from '../hooks/useFilteredProducts';
 import { SHOP_CONFIG } from '../config/shop';
@@ -76,10 +77,10 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
 
   useEffect(() => {
     document.title = typeLabel
-      ? `${typeLabel} — ${label} | The Avenue Thirty`
-      : `${label} | The Avenue Thirty`;
+      ? pageTitle(typeLabel, label, SITE_NAME)
+      : pageTitle(label, SITE_NAME);
     return () => {
-      document.title = 'The Avenue Thirty — Curated Fashion & Skincare';
+      document.title = DEFAULT_SITE_TITLE;
     };
   }, [typeLabel, label]);
 

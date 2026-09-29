@@ -4,6 +4,14 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { createHubspotDeal, createSellerLead } from './src/server/hubspot';
+import {
+  buildRobotsTxt,
+  buildSitemapXml,
+  injectSEO,
+  resolveOrigin,
+  resolveSEOMetadata,
+  type ProductLike,
+} from './src/server/seo';
 import { SHOP_CONFIG } from './src/config/shop';
 import { toTypeSlug } from './src/utils/typeSlug';
 
@@ -247,6 +255,7 @@ function extractChatJson(text: string): { reply: string; recommended_product_ids
 async function createApp() {
   const app = express();
 
+  app.set('trust proxy', true);
   app.use(express.json());
 
   app.get('/api/catalogue', async (req, res) => {
@@ -275,7 +284,7 @@ async function createApp() {
   app.get('/api/merchant-feed', async (req, res) => {
     try {
       const products = await getCatalogue();
-      const origin = `${req.protocol}://${req.get('host')}`;
+      const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
 
       const escapeXml = (value: string) =>
         value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -562,6 +571,36 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
     }
   });
 
+  app.get('/robots.txt', async (req, res) => {
+    try {
+      const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
+      res
+        .status(200)
+        .set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
+        .send(buildRobotsTxt(origin));
+    } catch (err: any) {
+      console.error('robots.txt error:', err?.message || err);
+      res.status(500).set({ 'Content-Type': 'text/plain; charset=utf-8' }).send('User-agent: *\nAllow: /\n');
+    }
+  });
+
+  app.get('/sitemap.xml', async (req, res) => {
+    try {
+      const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
+      const products = (await getCatalogue()) as ProductLike[];
+      res
+        .status(200)
+        .set({ 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
+        .send(buildSitemapXml(origin, products));
+    } catch (err: any) {
+      console.error('sitemap.xml error:', err?.message || err);
+      res
+        .status(500)
+        .set({ 'Content-Type': 'application/xml; charset=utf-8' })
+        .send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+    }
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createServer({
       server: { middlewareMode: true },
@@ -570,81 +609,22 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-
-    const GA4_SNIPPET = `<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-60DT6QKVL6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-60DT6QKVL6');
-</script>`;
+    // index:false so `/` reaches the catch-all and gets SEO tags instead of the
+    // raw static index.html.
+    app.use(express.static(distPath, { index: false }));
 
     app.get('*', async (req, res) => {
+      const indexPath = path.join(distPath, 'index.html');
       try {
-        const origin = `${req.protocol}://${req.get('host')}`;
-        const indexPath = path.join(distPath, 'index.html');
-        let html = fs.readFileSync(indexPath, 'utf-8');
+        const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
+        const html = fs.readFileSync(indexPath, 'utf-8');
+        const products = (await getCatalogue()) as ProductLike[];
+        const meta = resolveSEOMetadata(req.path, products, origin);
 
-        const replacements: Record<string, string> = {
-          '<!--seo-ga-->': GA4_SNIPPET,
-        };
-
-        const productMatch = req.path.match(/^\/product\/([^/]+)(?:\/([^/]+))?\/([^/]+)$/);
-        if (productMatch) {
-          const [, , , productId] = productMatch;
-          const products = await getCatalogue();
-          const product = products.find((p: any) => p.id === productId);
-          if (product) {
-            const title = `${product.name} | The Avenue Thirty`;
-            const description = product.description ? product.description.slice(0, 160) : '';
-            const canonicalUrl = `${origin}${req.path}`;
-            const availability =
-              product.availability === 'in_stock' ||
-              product.availability === 'preorder' ||
-              product.availability === 'backorder'
-                ? 'https://schema.org/InStock'
-                : 'https://schema.org/OutOfStock';
-
-            const schema = {
-              '@context': 'https://schema.org/',
-              '@type': 'Product',
-              name: product.name,
-              description: product.description,
-              image: [product.imageUrl, product.imageUrl2, product.imageUrl3].filter(Boolean),
-              offers: {
-                '@type': 'Offer',
-                price: product.priceMonthly,
-                priceCurrency: 'PKR',
-                availability,
-                url: canonicalUrl,
-              },
-            };
-
-            replacements['<!--seo-title-->'] = `<title>${title}</title>`;
-            replacements['<!--seo-meta-->'] = `<meta name="description" content="${description}" />`;
-            replacements['<!--seo-canonical-->'] = `<link rel="canonical" href="${canonicalUrl}" />`;
-            replacements['<!--seo-og-->'] = `
-              <meta property="og:title" content="${title}" />
-              <meta property="og:description" content="${description}" />
-              <meta property="og:type" content="product" />
-              <meta property="og:url" content="${canonicalUrl}" />
-              ${product.imageUrl ? `<meta property="og:image" content="${product.imageUrl}" />` : ''}
-              <meta name="twitter:card" content="summary_large_image" />
-            `;
-            replacements['<!--seo-schema-->'] = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
-          }
-        }
-
-        Object.entries(replacements).forEach(([placeholder, tagHtml]) => {
-          html = html.replace(placeholder, tagHtml);
-        });
-
-        res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
+        res.status(200).set({ 'Content-Type': 'text/html' }).send(injectSEO(html, meta));
       } catch (err) {
         console.error('SEO injection failed, serving plain index.html', err);
-        res.sendFile(path.join(distPath, 'index.html'));
+        res.sendFile(indexPath);
       }
     });
   }
@@ -652,8 +632,10 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
   return app;
 }
 
+// dist/server.cjs is the `npm run build` + `npm start` entrypoint, so it has to
+// pass this check too or the production bundle exits without listening.
 const entryScript = process.argv[1] || '';
-const isMain = entryScript.endsWith('server.ts') || entryScript.endsWith('server.js');
+const isMain = ['server.ts', 'server.js', 'server.cjs'].some((suffix) => entryScript.endsWith(suffix));
 
 if (isMain) {
   createApp().then((app) => {

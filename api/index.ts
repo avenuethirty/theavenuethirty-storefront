@@ -12,6 +12,825 @@ function toTypeSlug(raw: string): string {
     .replace(/^-|-$/g, "");
 }
 
+
+// ---------------------------------------------------------------------------
+// Inlined copy of src/server/seo.ts plus src/utils/seoText.ts and the
+// formatTypeLabel half of src/utils/typeSlug.ts. api/index.ts must stay
+// self-contained, so the SHOP_CONFIG-derived registries below are frozen to
+// literals that mirror src/config/shop.ts. When the SEO logic changes there,
+// regenerate this block.
+// ---------------------------------------------------------------------------
+
+const SITE_NAME = "The Avenue Thirty";
+const DEFAULT_SITE_TITLE = `${SITE_NAME} | Curated Fashion & Skincare`;
+
+// Typographic dashes are banned in every head tag, Open Graph tag, and JSON-LD
+// string this site emits. `pageTitle`/`sanitizeSeoText` normalize them to a
+// plain hyphen so no code path — including text pulled from the product sheet —
+// can leak one into a rendered document.
+const BANNED_DASHES = /[\u2014\u2013\u2012\u2015\u2212\u2011\u00AD\uFE63\uFF0D]/g;
+
+function sanitizeSeoText(value: string): string {
+  if (!value) return value;
+  // Only the banned characters are rewritten. Existing ASCII hyphens are left
+  // alone so titles like "Must-Have Styles" survive untouched.
+  return value.replace(BANNED_DASHES, "-").replace(/[ \t]{2,}/g, " ").trim();
+}
+
+function pageTitle(...parts: Array<string | undefined | null>): string {
+  const kept = parts.filter((part): part is string => !!part && part.trim().length > 0);
+  return sanitizeSeoText(kept.join(" | "));
+}
+
+function formatTypeLabel(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  const isPlainCase =
+    trimmed === trimmed.toLowerCase() || trimmed === trimmed.toUpperCase();
+  if (!isPlainCase) return trimmed;
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+const SCHEMA_CONTEXT = "https://schema.org/";
+const MAX_META_DESCRIPTION = 158;
+const MAX_ITEM_LIST = 50;
+
+const SITE_DOMAIN = "theavenuethirty.com";
+const DEFAULT_OG_IMAGE = "https://i.postimg.cc/5tJ5zYT3/herobg-01.webp";
+const CURRENCY_CODE = "PKR";
+const SOCIAL_LINKS = [
+  "https://instagram.com/theavenuethirty",
+  "https://tiktok.com/@theavenuethirty",
+  "https://x.com/theavenuethirty",
+  "https://snapchat.com/add/theavenuethirty",
+];
+const DEFAULT_DESCRIPTION =
+  "Shop curated fashion, skincare, accessories, and lifestyle products at The Avenue Thirty. Fast cash-on-delivery shipping across Pakistan.";
+
+const GA4_SNIPPET = `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-60DT6QKVL6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-60DT6QKVL6');
+</script>`;
+
+interface ProductLike {
+  id: string;
+  name: string;
+  category: string;
+  tagline?: string;
+  typeSlug?: string;
+  priceMonthly?: number;
+  originalPrice?: number;
+  imageUrl?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
+  availability?: string;
+  description?: string;
+  collections?: string[];
+}
+
+interface SEOMetadata {
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  ogImage?: string;
+  ogType?: "website" | "product";
+  schema?: Record<string, unknown> | Array<Record<string, unknown>>;
+  robots?: string;
+}
+
+interface SEOCategory {
+  slug: string;
+  label: string;
+  image?: string;
+}
+
+interface CollectionMatch {
+  collection?: string;
+  category?: string;
+  type?: string;
+  minDiscountPct?: number;
+  priceMin?: number;
+  priceMax?: number;
+  ratingMin?: number;
+}
+
+interface SEOCollection {
+  slug: string;
+  title: string;
+  subtitle?: string;
+  image?: string;
+  match: CollectionMatch;
+}
+
+interface SEOStaticPage {
+  path: string;
+  title: string;
+  description: string;
+}
+
+const SEO_CATEGORIES: SEOCategory[] = [
+  { slug: "skincare", label: "Skincare", image: "https://i.postimg.cc/Rh0rgYH1/skincare.webp" },
+  { slug: "bags", label: "Bags", image: "https://i.postimg.cc/Xq92cc2G/bags.webp" },
+  { slug: "jewellery", label: "Jewellery", image: "https://i.postimg.cc/vZGQn0Ph/jewellery.webp" },
+  { slug: "toys", label: "Kids", image: "https://i.postimg.cc/90z9cW9T/toys.webp" },
+  { slug: "premium", label: "Premium", image: "https://i.postimg.cc/90z9cW9T/toys.webp" },
+];
+
+const SEO_COLLECTIONS: SEOCollection[] = [
+  { slug: "must-have", title: "Must-Have Styles", match: { collection: "Must-Have Styles" } },
+  { slug: "best-sellers", title: "Best Sellers", match: { collection: "Best Seller" } },
+  { slug: "on-sale", title: "On Sale", match: { collection: "Sale" } },
+  { slug: "new-in", title: "New Arrivals", match: { collection: "New Arrival" } },
+  { slug: "trending", title: "Trending", match: { collection: "Trending" } },
+  { slug: "featured", title: "Featured", match: { collection: "Featured" } },
+  { slug: "budget-buys", title: "Budget Buys", subtitle: "Affordable picks under Rs. 1,000", match: { priceMin: 0, priceMax: 1000 } },
+  { slug: "budget-skincare", title: "Skincare Under Rs. 1,000", subtitle: "Gentle care without the splurge", match: { category: "skincare", priceMin: 0, priceMax: 1000 } },
+  { slug: "bags-under-1500", title: "Handbags Under Rs. 1,500", subtitle: "Statement bags at a steal", match: { category: "bags", priceMin: 0, priceMax: 1500 } },
+  { slug: "bags-clearance", title: "Bags 50%+ Off", subtitle: "Deep discounts on our best bags", match: { category: "bags", minDiscountPct: 50 } },
+  { slug: "top-rated", title: "Top Rated", subtitle: "Our highest-rated picks", match: { ratingMin: 4 } },
+];
+
+// Mirrors matchCollection() in src/utils/collections.ts so collection pages can
+// emit an ItemList of the products they actually render. Keep the two in sync.
+function matchCollectionProducts(products: ProductLike[], match: CollectionMatch): ProductLike[] {
+  return products.filter((product) => {
+    if (
+      match.collection &&
+      !product.collections?.some(
+        (tag) => tag.toLowerCase() === match.collection!.toLowerCase()
+      )
+    ) {
+      return false;
+    }
+    if (match.category && product.category !== match.category) return false;
+    if (match.type && product.typeSlug !== match.type) return false;
+    if (match.minDiscountPct !== undefined) {
+      if (!product.originalPrice || product.originalPrice <= (product.priceMonthly ?? 0)) return false;
+      const pct = ((product.originalPrice - (product.priceMonthly ?? 0)) / product.originalPrice) * 100;
+      if (pct < match.minDiscountPct) return false;
+    }
+    if (match.priceMin !== undefined && (product.priceMonthly ?? 0) < match.priceMin) return false;
+    if (match.priceMax !== undefined && (product.priceMonthly ?? 0) > match.priceMax) return false;
+    return true;
+  });
+}
+
+const SEO_STATIC_PAGES: SEOStaticPage[] = [
+  {
+    path: "/about",
+    title: "About Us",
+    description:
+      "Learn about The Avenue Thirty, our curated store for fashion, skincare, accessories, and lifestyle finds delivered across Pakistan.",
+  },
+  {
+    path: "/contact",
+    title: "Contact Us",
+    description:
+      "Get in touch with The Avenue Thirty for order help, product questions, and seller enquiries. Cash on delivery available nationwide.",
+  },
+  {
+    path: "/faq",
+    title: "Frequently Asked Questions",
+    description:
+      "Answers to common questions about The Avenue Thirty ordering, cash-on-delivery payment, delivery times, returns, and exchanges in Pakistan.",
+  },
+  {
+    path: "/privacy",
+    title: "Privacy Policy",
+    description:
+      "How The Avenue Thirty collects, uses, and protects your personal information when you browse, chat, or place a cash-on-delivery order.",
+  },
+  {
+    path: "/return-policy",
+    title: "Return & Exchange Policy",
+    description:
+      "Our return and exchange policy: eligibility, timelines, and how to start a return or exchange for your The Avenue Thirty order.",
+  },
+  {
+    path: "/sell",
+    title: "Sell With Us",
+    description:
+      "Sell your products with The Avenue Thirty. Submit your brand and catalogue details and our team will get back to you about partnership.",
+  },
+  {
+    path: "/ai-shopping",
+    title: "AI Shopping Assistant",
+    description:
+      "Shop faster with the The Avenue Thirty AI assistant. Ask for product recommendations by category, type, or budget.",
+  },
+];
+
+function getCategoryMeta(slug: string): SEOCategory | undefined {
+  return SEO_CATEGORIES.find((category) => category.slug === slug);
+}
+
+function getCategoryLabelForSlug(slug: string): string {
+  return getCategoryMeta(slug)?.label || slug;
+}
+
+function getCollectionMeta(slug: string): SEOCollection | undefined {
+  return SEO_COLLECTIONS.find((collection) => collection.slug === slug);
+}
+
+function getStaticPageMeta(path: string): SEOStaticPage | undefined {
+  return SEO_STATIC_PAGES.find((page) => page.path === path);
+}
+
+function normalizePath(rawPath: string): string {
+  const withLeading = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
+  const collapsed = withLeading.replace(/\/{2,}/g, "/");
+  if (collapsed.length > 1 && collapsed.endsWith("/")) {
+    return collapsed.replace(/\/+$/, "");
+  }
+  return collapsed;
+}
+
+function productPath(product: ProductLike): string {
+  const typeSegment = product.typeSlug ? `/${product.typeSlug}` : "";
+  return `/product/${product.category}${typeSegment}/${product.id}`;
+}
+
+function categoryPath(slug: string): string {
+  return `/product/${slug}`;
+}
+
+function typePath(slug: string, typeSlug: string): string {
+  return `/product/${slug}/${typeSlug}`;
+}
+
+function collectionPath(slug: string): string {
+  return `/${slug}`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeXml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function clampText(value: string, max: number): string {
+  const collapsed = value.replace(/\s+/g, " ").trim();
+  if (collapsed.length <= max) return collapsed;
+  const cut = collapsed.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  const base = lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut;
+  return base.replace(/[\s,;:.!?\-–—]+$/, "");
+}
+
+function truncateAtSentence(value: string, max: number): string {
+  const collapsed = value.replace(/\s+/g, " ").trim();
+  if (collapsed.length <= max) return collapsed;
+  const clamped = clampText(collapsed, max);
+  const lastStop = Math.max(
+    clamped.lastIndexOf(". "),
+    clamped.lastIndexOf("! "),
+    clamped.lastIndexOf("? ")
+  );
+  if (lastStop > max * 0.4) return clamped.slice(0, lastStop + 1).trim();
+  return clamped;
+}
+
+function replaceAll(haystack: string, needle: string, replacement: string): string {
+  if (!needle) return haystack;
+  return haystack.split(needle).join(replacement);
+}
+
+function serializeJsonLd(schema: unknown): string {
+  return JSON.stringify(schema)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
+function sanitizeSchemaStrings(value: unknown): unknown {
+  if (typeof value === "string") return sanitizeSeoText(value);
+  if (Array.isArray(value)) return value.map(sanitizeSchemaStrings);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = sanitizeSchemaStrings(entry);
+    }
+    return out;
+  }
+  return value;
+}
+
+function breadcrumbList(origin: string, trail: Array<{ name: string; path: string }>): Record<string, unknown> {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((crumb, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: crumb.name,
+      item: `${origin}${crumb.path === "/" ? "/" : crumb.path}`,
+    })),
+  };
+}
+
+function itemList(products: ProductLike[], origin: string): Record<string, unknown> {
+  return {
+    "@type": "ItemList",
+    numberOfItems: products.length,
+    itemListElement: products.slice(0, MAX_ITEM_LIST).map((product, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${origin}${productPath(product)}`,
+      name: product.name,
+    })),
+  };
+}
+
+function graph(nodes: Array<Record<string, unknown>>): Record<string, unknown> {
+  return { "@context": SCHEMA_CONTEXT, "@graph": nodes };
+}
+
+function productImages(product: ProductLike): string[] {
+  return [product.imageUrl, product.imageUrl2, product.imageUrl3].filter(
+    (image): image is string => typeof image === "string" && image.length > 0
+  );
+}
+
+function availabilityUrl(value: string | undefined): string {
+  const normalized = (value || "").trim().toLowerCase();
+  if (normalized === "preorder") return "https://schema.org/PreOrder";
+  if (normalized === "backorder") return "https://schema.org/BackOrder";
+  if (normalized === "out_of_stock" || normalized === "sold_out") return "https://schema.org/OutOfStock";
+  return "https://schema.org/InStock";
+}
+
+function generateProductSEO(product: ProductLike, origin: string, canonicalPath?: string): SEOMetadata {
+  const description = truncateAtSentence(
+    product.description || `${product.name} at ${SITE_NAME}. Cash on delivery across Pakistan.`,
+    MAX_META_DESCRIPTION
+  );
+  // Always canonicalise to the product's own /product/:category/:typeSlug/:id
+  // form so alternate URL shapes (short /product/:category/:id, wrong category
+  // in the path) consolidate onto one indexable URL.
+  const canonicalUrl = `${origin}${canonicalPath || productPath(product)}`;
+  const images = productImages(product);
+  const price = typeof product.priceMonthly === "number" && Number.isFinite(product.priceMonthly)
+    ? product.priceMonthly.toFixed(2)
+    : "0.00";
+  const categoryLabel = getCategoryLabelForSlug(product.category);
+  const typeLabel = product.tagline ? formatTypeLabel(product.tagline) : "";
+
+  return {
+    title: `${product.name} | ${SITE_NAME}`,
+    description,
+    canonicalUrl,
+    ogImage: images[0],
+    ogType: "product",
+    schema: {
+      "@context": SCHEMA_CONTEXT,
+      "@type": "Product",
+      "@id": `${canonicalUrl}#product`,
+      name: product.name,
+      description: product.description || product.name,
+      sku: product.id,
+      category: typeLabel ? `${categoryLabel} > ${typeLabel}` : categoryLabel,
+      image: images,
+      brand: { "@type": "Brand", name: SITE_NAME },
+      offers: {
+        "@type": "Offer",
+        url: canonicalUrl,
+        price,
+        priceCurrency: CURRENCY_CODE,
+        availability: availabilityUrl(product.availability),
+        itemCondition: "https://schema.org/NewCondition",
+        seller: { "@type": "Organization", name: SITE_NAME },
+      },
+    },
+  };
+}
+
+interface CategorySEOOptions {
+  typeSlug?: string;
+  typeLabel?: string;
+  products?: ProductLike[];
+}
+
+function generateCategorySEO(
+  slug: string,
+  label: string,
+  origin: string,
+  options: CategorySEOOptions = {}
+): SEOMetadata {
+  const { typeSlug, typeLabel, products = [] } = options;
+  const heading = typeLabel ? `${typeLabel} ${label}` : label;
+  const canonicalUrl = `${origin}${typeSlug ? typePath(slug, typeSlug) : categoryPath(slug)}`;
+  const ogImage = getCategoryMeta(slug)?.image;
+
+  const subject = typeLabel || label;
+  const countSuffix = products.length
+    ? ` Browse ${products.length} ${products.length === 1 ? "pick" : "picks"}`
+    : " Browse the latest arrivals";
+  const description = clampText(
+    `${subject} at ${SITE_NAME}.${countSuffix} with cash-on-delivery shipping across Pakistan.`,
+    MAX_META_DESCRIPTION
+  );
+
+  const trail = [
+    { name: "Home", path: "/" },
+    { name: label, path: categoryPath(slug) },
+  ];
+  if (typeLabel && typeSlug) {
+    trail.push({ name: typeLabel, path: typePath(slug, typeSlug) });
+  }
+
+  const nodes: Array<Record<string, unknown>> = [breadcrumbList(origin, trail)];
+  if (products.length) {
+    nodes.push(itemList(products, origin));
+  }
+
+  return {
+    title: typeLabel ? pageTitle(typeLabel, label, SITE_NAME) : pageTitle(label, SITE_NAME),
+    description,
+    canonicalUrl,
+    ogImage,
+    ogType: "website",
+    schema: graph(nodes),
+  };
+}
+
+function generateHomeSEO(origin: string): SEOMetadata {
+  return {
+    title: DEFAULT_SITE_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    canonicalUrl: `${origin}/`,
+    ogImage: DEFAULT_OG_IMAGE,
+    ogType: "website",
+    schema: graph([
+      {
+        "@type": "Organization",
+        "@id": `${origin}/#organization`,
+        name: SITE_NAME,
+        url: `${origin}/`,
+        description: DEFAULT_DESCRIPTION,
+        sameAs: SOCIAL_LINKS,
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${origin}/#website`,
+        url: `${origin}/`,
+        name: SITE_NAME,
+        publisher: { "@id": `${origin}/#organization` },
+        inLanguage: "en-PK",
+      },
+    ]),
+  };
+}
+
+interface CollectionSEOOptions {
+  subtitle?: string;
+  image?: string;
+  products?: ProductLike[];
+}
+
+function generateCollectionSEO(
+  slug: string,
+  title: string,
+  origin: string,
+  options: CollectionSEOOptions = {}
+): SEOMetadata {
+  const { subtitle, image, products = [] } = options;
+  const canonicalUrl = `${origin}${collectionPath(slug)}`;
+  const countSuffix = products.length ? ` ${products.length} curated ${products.length === 1 ? "pick" : "picks"}.` : "";
+  const description = clampText(
+    `Shop ${title} at ${SITE_NAME}.${countSuffix}${subtitle ? ` ${subtitle}.` : ""} Cash on delivery across Pakistan.`,
+    MAX_META_DESCRIPTION
+  );
+
+  const nodes: Array<Record<string, unknown>> = [
+    breadcrumbList(origin, [
+      { name: "Home", path: "/" },
+      { name: title, path: collectionPath(slug) },
+    ]),
+  ];
+  if (products.length) {
+    nodes.push(itemList(products, origin));
+  }
+
+  return {
+    title: `${title} | ${SITE_NAME}`,
+    description,
+    canonicalUrl,
+    ogImage: image || DEFAULT_OG_IMAGE,
+    ogType: "website",
+    schema: graph(nodes),
+  };
+}
+
+function generateStaticPageSEO(page: SEOStaticPage, origin: string): SEOMetadata {
+  const canonicalUrl = `${origin}${page.path}`;
+  return {
+    title: `${page.title} | ${SITE_NAME}`,
+    description: page.description,
+    canonicalUrl,
+    ogImage: DEFAULT_OG_IMAGE,
+    ogType: "website",
+    schema: graph([
+      {
+        "@type": "WebPage",
+        "@id": `${canonicalUrl}#webpage`,
+        url: canonicalUrl,
+        name: `${page.title} | ${SITE_NAME}`,
+        description: page.description,
+        isPartOf: { "@id": `${origin}/#website` },
+        about: { "@id": `${origin}/#organization` },
+        inLanguage: "en-PK",
+      },
+      breadcrumbList(origin, [
+        { name: "Home", path: "/" },
+        { name: page.title, path: page.path },
+      ]),
+    ]),
+  };
+}
+
+function generateNoindexSEO(origin: string, canonicalPath: string): SEOMetadata {
+  return {
+    title: `Page not found | ${SITE_NAME}`,
+    description: DEFAULT_DESCRIPTION,
+    canonicalUrl: `${origin}${canonicalPath}`,
+    ogImage: DEFAULT_OG_IMAGE,
+    ogType: "website",
+    robots: "noindex, follow",
+  };
+}
+
+function findProduct(products: ProductLike[], id: string): ProductLike | undefined {
+  if (!id) return undefined;
+  const needle = id.trim();
+  return products.find((product) => product.id === needle);
+}
+
+function typeLabelFor(products: ProductLike[], slug: string, typeSlug: string): string | undefined {
+  const match = products.find(
+    (product) => product.category === slug && product.typeSlug === typeSlug && !!product.tagline
+  );
+  return match?.tagline ? formatTypeLabel(match.tagline) : undefined;
+}
+
+function categoryProductsFor(products: ProductLike[], slug: string, typeSlug?: string): ProductLike[] {
+  return products.filter(
+    (product) => product.category === slug && (!typeSlug || product.typeSlug === typeSlug)
+  );
+}
+
+function resolveSEOMetadata(
+  rawPath: string,
+  products: ProductLike[],
+  origin: string
+): SEOMetadata {
+  return sanitizeMetadata(resolveSEOMetadataRaw(rawPath, products, origin));
+}
+
+// Typographic dashes are banned site-wide in head tags, Open Graph tags, and
+// JSON-LD strings. Sanitizing here means the metadata object itself is safe for
+// any consumer, not just the HTML renderer; renderSEOTags() re-applies the same
+// normalization as a backstop.
+function sanitizeMetadata(meta: SEOMetadata): SEOMetadata {
+  return {
+    ...meta,
+    title: sanitizeSeoText(meta.title),
+    description: sanitizeSeoText(meta.description),
+    schema: meta.schema ? (sanitizeSchemaStrings(meta.schema) as SEOMetadata["schema"]) : meta.schema,
+  };
+}
+
+function resolveSEOMetadataRaw(
+  rawPath: string,
+  products: ProductLike[],
+  origin: string
+): SEOMetadata {
+  const cleanPath = normalizePath(rawPath);
+  const segments = cleanPath.split("/").filter((segment) => segment.length > 0);
+
+  if (segments.length === 0) {
+    return generateHomeSEO(origin);
+  }
+
+  if (segments[0] === "product") {
+    const slug = segments[1] || "";
+
+    if (segments.length === 2) {
+      const scopedProducts = categoryProductsFor(products, slug);
+      if (!getCategoryMeta(slug) && scopedProducts.length === 0) {
+        // Not a registered category and nothing in the catalogue: empty PLP.
+        return generateNoindexSEO(origin, cleanPath);
+      }
+      const label = getCategoryLabelForSlug(slug);
+      return generateCategorySEO(slug, label, origin, { products: scopedProducts });
+    }
+
+    if (segments.length === 3) {
+      const product = findProduct(products, segments[2]);
+      if (product) {
+        return generateProductSEO(product, origin);
+      }
+      const typeSlug = segments[2];
+      const label = getCategoryLabelForSlug(slug);
+      const typeLabel = typeLabelFor(products, slug, typeSlug);
+      if (!typeLabel) {
+        // Neither a product id nor a live type slug: stale or mistyped URL.
+        return generateNoindexSEO(origin, cleanPath);
+      }
+      return generateCategorySEO(slug, label, origin, {
+        typeSlug,
+        typeLabel,
+        products: categoryProductsFor(products, slug, typeSlug),
+      });
+    }
+
+    if (segments.length === 4) {
+      const product = findProduct(products, segments[3]);
+      if (product) {
+        return generateProductSEO(product, origin);
+      }
+    }
+
+    return generateNoindexSEO(origin, cleanPath);
+  }
+
+  const staticPage = getStaticPageMeta(cleanPath);
+  if (staticPage) {
+    return generateStaticPageSEO(staticPage, origin);
+  }
+
+  if (segments.length === 1) {
+    const collection = getCollectionMeta(segments[0]);
+    if (collection) {
+      return generateCollectionSEO(collection.slug, collection.title, origin, {
+        subtitle: collection.subtitle,
+        image: collection.image,
+        products: matchCollectionProducts(products, collection.match),
+      });
+    }
+  }
+
+  return generateNoindexSEO(origin, cleanPath);
+}
+
+function renderSEOTags(meta: SEOMetadata): Record<string, string> {
+  // Single choke point for every head tag this site renders. Sanitizing here
+  // means no title, description, Open Graph value, or JSON-LD string can carry
+  // a typographic dash — including text sourced from the product sheet.
+  const title = escapeHtml(sanitizeSeoText(meta.title));
+  const description = escapeHtml(sanitizeSeoText(meta.description));
+  const canonical = escapeHtml(meta.canonicalUrl);
+  const robots = escapeHtml(meta.robots || "index, follow");
+  const ogImage = meta.ogImage ? escapeHtml(meta.ogImage) : "";
+  const cardType = ogImage ? "summary_large_image" : "summary";
+
+  const ogLines = [
+    `<meta property="og:site_name" content="${escapeHtml(sanitizeSeoText(SITE_NAME))}" />`,
+    `<meta property="og:title" content="${title}" />`,
+    `<meta property="og:description" content="${description}" />`,
+    `<meta property="og:type" content="${meta.ogType || "website"}" />`,
+    `<meta property="og:url" content="${canonical}" />`,
+    ogImage ? `<meta property="og:image" content="${ogImage}" />` : "",
+    `<meta name="twitter:card" content="${cardType}" />`,
+    `<meta name="twitter:title" content="${title}" />`,
+    `<meta name="twitter:description" content="${description}" />`,
+    ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : "",
+  ].filter(Boolean);
+
+  const tags: Record<string, string> = {
+    "<!--seo-title-->": `<title>${title}</title>`,
+    "<!--seo-meta-->": `<meta name="description" content="${description}" />`,
+    "<!--seo-canonical-->": `<link rel="canonical" href="${canonical}" />`,
+    "<!--seo-robots-->": `<meta name="robots" content="${robots}" />`,
+    "<!--seo-og-->": ogLines.join("\n    "),
+    "<!--seo-ga-->": GA4_SNIPPET,
+  };
+
+  if (meta.schema) {
+    tags["<!--seo-schema-->"] = `<script type="application/ld+json">${serializeJsonLd(sanitizeSchemaStrings(meta.schema))}</script>`;
+  }
+
+  return tags;
+}
+
+function injectSEO(html: string, meta: SEOMetadata): string {
+  const tags = renderSEOTags(meta);
+
+  // index.html ships static defaults so local dev and `vite preview` still have a
+  // valid document. Strip them first so a rendered route never ships two titles,
+  // two descriptions, or a canonical pointing at the homepage.
+  let output = html
+    .replace(/<title>[\s\S]*?<\/title>/gi, "")
+    .replace(/<meta[^>]+name=["']description["'][^>]*>/gi, "")
+    .replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi, "");
+
+  for (const [placeholder, tagHtml] of Object.entries(tags)) {
+    output = replaceAll(output, placeholder, tagHtml);
+  }
+
+  if (!/<title[\s>]/i.test(output)) {
+    output = replaceAll(output, "</head>", `${tags["<!--seo-title-->"]}\n</head>`);
+  }
+
+  // Drop any placeholder a route did not fill (e.g. seo-schema on noindex pages).
+  output = output.replace(/<!--\s*seo-[a-z]+\s*-->/gi, "");
+
+  return output;
+}
+
+// Canonical URLs and sitemap entries must use the public origin. Behind Vercel's
+// TLS termination the request origin is only correct when `trust proxy` is on, so
+// SITE_URL is the authoritative override when set.
+function resolveOrigin(requestOrigin: string): string {
+  const configured = (process.env.SITE_URL || "").trim().replace(/\/+$/, "");
+  return configured || requestOrigin;
+}
+
+interface SitemapEntry {
+  path: string;
+  priority: string;
+  changeFreq: string;
+}
+
+function buildSitemapEntries(products: ProductLike[]): SitemapEntry[] {
+  const entries: SitemapEntry[] = [{ path: "/", priority: "1.0", changeFreq: "daily" }];
+
+  for (const category of SEO_CATEGORIES) {
+    entries.push({ path: categoryPath(category.slug), priority: "0.8", changeFreq: "weekly" });
+  }
+
+  const seenTypePaths = new Set<string>();
+  for (const product of products) {
+    if (!product.category || !product.typeSlug) continue;
+    const path = typePath(product.category, product.typeSlug);
+    if (seenTypePaths.has(path)) continue;
+    seenTypePaths.add(path);
+    entries.push({ path, priority: "0.7", changeFreq: "weekly" });
+  }
+
+  for (const collection of SEO_COLLECTIONS) {
+    entries.push({ path: collectionPath(collection.slug), priority: "0.8", changeFreq: "weekly" });
+  }
+
+  for (const page of SEO_STATIC_PAGES) {
+    entries.push({ path: page.path, priority: "0.5", changeFreq: "monthly" });
+  }
+
+  for (const product of products) {
+    if (!product.category || !product.id) continue;
+    entries.push({ path: productPath(product), priority: "0.7", changeFreq: "weekly" });
+  }
+
+  return entries;
+}
+
+function buildSitemapXml(origin: string, products: ProductLike[]): string {
+  const lastmod = new Date().toISOString().slice(0, 10);
+  const seen = new Set<string>();
+  const urls: string[] = [];
+
+  for (const entry of buildSitemapEntries(products)) {
+    if (seen.has(entry.path)) continue;
+    seen.add(entry.path);
+    urls.push(
+      [
+        "  <url>",
+        `    <loc>${escapeXml(`${origin}${entry.path === "/" ? "/" : entry.path}`)}</loc>`,
+        `    <lastmod>${lastmod}</lastmod>`,
+        `    <changefreq>${entry.changeFreq}</changefreq>`,
+        `    <priority>${entry.priority}</priority>`,
+        "  </url>",
+      ].join("\n")
+    );
+  }
+
+  return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', ...urls, "</urlset>", ""].join("\n");
+}
+
+function buildRobotsTxt(origin: string): string {
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /api/",
+    "",
+    `Sitemap: ${origin}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
 const GROQ_MODEL = "openai/gpt-oss-20b";
 
 const GOOGLE_SHEET_CSV_URL = process.env.GOOGLE_SHEET_CSV_URL || 'https://docs.google.com/spreadsheets/d/1LkSL5CL0c80b_6iqVd8FH_uAnm3PwjZv4_Wh_R6xETo/export?format=csv';
@@ -491,6 +1310,7 @@ async function createSellerLead(lead: { brandName: string; contactName: string; 
 
 const app = express();
 
+app.set('trust proxy', true);
 app.use(express.json());
 
 app.get('/api/catalogue', async (req, res) => {
@@ -714,82 +1534,52 @@ app.get('/api/location/reverse-geocode', async (req, res) => {
   }
 });
 
-  const GA4_SNIPPET = `<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-60DT6QKVL6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-60DT6QKVL6');
-</script>`;
+app.get('/robots.txt', async (req, res) => {
+  try {
+    const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
+    res
+      .status(200)
+      .set({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
+      .send(buildRobotsTxt(origin));
+  } catch (err: any) {
+    console.error('robots.txt error:', err?.message || err);
+    res.status(500).set({ 'Content-Type': 'text/plain; charset=utf-8' }).send('User-agent: *\nAllow: /\n');
+  }
+});
 
-  app.get('*', async (req, res) => {
-    try {
-      const origin = `${req.protocol}://${req.get('host')}`;
-      const indexPath = path.join(process.cwd(), 'dist', 'index.html');
-      let html = fs.readFileSync(indexPath, 'utf-8');
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
+    const products = (await getCatalogue()) as ProductLike[];
+    res
+      .status(200)
+      .set({ 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
+      .send(buildSitemapXml(origin, products));
+  } catch (err: any) {
+    console.error('sitemap.xml error:', err?.message || err);
+    res
+      .status(500)
+      .set({ 'Content-Type': 'application/xml; charset=utf-8' })
+      .send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+  }
+});
 
-      const replacements: Record<string, string> = {
-        '<!--seo-ga-->': GA4_SNIPPET,
-      };
+// SPA fallback. Renders index.html with route-specific title, description,
+// canonical, robots, Open Graph, JSON-LD, and the GA4 snippet injected.
+app.get('*', async (req, res) => {
+  const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+  try {
+    const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
+    const html = fs.readFileSync(indexPath, 'utf-8');
+    const products = (await getCatalogue()) as ProductLike[];
+    const meta = resolveSEOMetadata(req.path, products, origin);
 
-      const productMatch = req.path.match(/^\/product\/([^/]+)(?:\/([^/]+))?\/([^/]+)$/);
-      if (productMatch) {
-        const [, , , productId] = productMatch;
-        const products = await getCatalogue();
-        const product = products.find((p: any) => p.id === productId);
-        if (product) {
-          const title = `${product.name} | The Avenue Thirty`;
-          const description = product.description ? product.description.slice(0, 160) : '';
-          const canonicalUrl = `${origin}${req.path}`;
-          const availability =
-            product.availability === 'in_stock' ||
-            product.availability === 'preorder' ||
-            product.availability === 'backorder'
-              ? 'https://schema.org/InStock'
-              : 'https://schema.org/OutOfStock';
-
-          const schema = {
-            '@context': 'https://schema.org/',
-            '@type': 'Product',
-            name: product.name,
-            description: product.description,
-            image: [product.imageUrl, product.imageUrl2, product.imageUrl3].filter(Boolean),
-            offers: {
-              '@type': 'Offer',
-              price: product.priceMonthly,
-              priceCurrency: 'PKR',
-              availability,
-              url: canonicalUrl,
-            },
-          };
-
-          replacements['<!--seo-title-->'] = `<title>${title}</title>`;
-          replacements['<!--seo-meta-->'] = `<meta name="description" content="${description}" />`;
-          replacements['<!--seo-canonical-->'] = `<link rel="canonical" href="${canonicalUrl}" />`;
-          replacements['<!--seo-og-->'] = `
-            <meta property="og:title" content="${title}" />
-            <meta property="og:description" content="${description}" />
-            <meta property="og:type" content="product" />
-            <meta property="og:url" content="${canonicalUrl}" />
-            ${product.imageUrl ? `<meta property="og:image" content="${product.imageUrl}" />` : ''}
-            <meta name="twitter:card" content="summary_large_image" />
-          `;
-          replacements['<!--seo-schema-->'] = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
-        }
-      }
-
-      Object.entries(replacements).forEach(([placeholder, tagHtml]) => {
-        html = html.replace(placeholder, tagHtml);
-      });
-
-      res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
-    } catch (err) {
-      console.error('SEO injection failed, serving plain index.html', err);
-      const indexPath = path.join(process.cwd(), 'dist', 'index.html');
-      res.sendFile(indexPath);
-    }
-  });
+    res.status(200).set({ 'Content-Type': 'text/html' }).send(injectSEO(html, meta));
+  } catch (err) {
+    console.error('SEO injection failed, serving plain index.html', err);
+    res.sendFile(indexPath);
+  }
+});
 
 export default async (req: any, res: any) => {
   app(req, res);
