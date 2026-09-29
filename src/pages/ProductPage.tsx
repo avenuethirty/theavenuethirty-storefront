@@ -6,6 +6,7 @@ import { getDiscountBadge } from '../utils/discount';
 import { getCollectionBySlug, matchCollection } from '../utils/collections';
 import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
 import { DEFAULT_SITE_TITLE, pageTitle, sanitizeSeoText, SITE_NAME } from '../utils/seoText';
+import { getRelatedProducts } from '../utils/recommendations';
 import { Check, Plus } from 'lucide-react';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 
@@ -61,10 +62,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   // worked (the catalogue was already loaded on the first render).
   const relatedProducts = useMemo(() => {
     if (!product) return [];
-    return products
-      .filter((p) => p.category === product.category && p.id !== product.id)
-      .slice(0, 4);
+    return getRelatedProducts(product, products, 4);
   }, [products, product]);
+
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
+  const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentImageIndex(0);
@@ -232,36 +234,102 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                 {added ? 'Added to Cart' : 'Quick Add to Cart'}
               </button>
 
-              {relatedProducts.length > 0 && (
-                <div className="mt-12">
-                  <h2 className="text-lg font-light tracking-tight mb-4">You may also like</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-[10px]">
-                    {relatedProducts.map((rp) => (
-                      <Link
-                        key={rp.id}
-                        to={`/product/${rp.category}${rp.typeSlug ? `/${rp.typeSlug}` : ''}/${rp.id}`}
-                        className="group flex flex-col"
-                      >
-                        <div className="aspect-square bg-[#EFEFEF] overflow-hidden mb-2">
-                          <img
-                            src={rp.imageUrl}
-                            alt={rp.name}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                          />
-                        </div>
-                        <p className="text-xs font-semibold uppercase leading-tight line-clamp-2">{rp.name}</p>
-                        <span className="text-xs text-neutral-600 mt-1">
-                          {SHOP_CONFIG.localization.currencySymbol}
-                          {rp.priceMonthly.toFixed(2)}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
+
+          {relatedProducts.length > 0 && (
+            <section className="mt-20">
+              <span className="text-xs font-bold uppercase tracking-[0.3em] text-[#9A8C83]">
+                {typeLabel || categoryLabel}
+              </span>
+              <h2 className="mt-3 mb-8 text-2xl md:text-3xl font-light tracking-tight">
+                You may also like
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[10px]">
+                {relatedProducts.map(({ product: rp }) => {
+                  const isAdded = addedProductId === rp.id;
+                  const rpDiscount = getDiscountBadge(rp);
+
+                  return (
+                    <Link
+                      key={rp.id}
+                      to={`/product/${rp.category}${rp.typeSlug ? `/${rp.typeSlug}` : ''}/${rp.id}`}
+                      className="group flex flex-col"
+                      onMouseEnter={() => setHoveredProductId(rp.id)}
+                      onMouseLeave={() => setHoveredProductId(null)}
+                    >
+                      <div className="relative aspect-square w-full bg-[#EFEFEF] overflow-hidden flex items-center justify-center p-0 mb-4 transition-colors group-hover:bg-[#E8E8E8]">
+                        <img
+                          src={hoveredProductId === rp.id && rp.imageUrl2 ? rp.imageUrl2 : rp.imageUrl}
+                          alt={rp.name}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                        />
+
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-end justify-center p-4">
+                          <button
+                            onClick={(e) => {
+                              // preventDefault is required in addition to
+                              // stopPropagation: the card is a react-router
+                              // <Link>, and Router only skips navigation when the
+                              // click event is defaultPrevented. stopPropagation
+                              // alone lets the anchor navigate away.
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onAddToCart(rp);
+                              setAddedProductId(rp.id);
+                              setTimeout(() => setAddedProductId(null), 1500);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 w-full py-2.5 bg-[#1A1A1A] hover:bg-neutral-800 text-white text-[10px] font-sans font-medium uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                          >
+                            {isAdded ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" />
+                                <span>Added to Cart</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3 h-3" />
+                                <span>Quick Add</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col text-left">
+                        <h3 className="text-xs font-sans font-semibold tracking-wider text-[#1A1A1A] uppercase leading-tight">
+                          {rp.name}
+                        </h3>
+                        <span className="text-xs font-sans text-[#666666] tracking-wider uppercase mt-1">
+                          {rp.originalPrice ? (
+                            <>
+                              <span className="line-through opacity-70">
+                                {SHOP_CONFIG.localization.currencySymbol}
+                                {rp.originalPrice.toFixed(2)}
+                              </span>
+                              <span className="ml-2 font-semibold text-[#1A1A1A]">
+                                {SHOP_CONFIG.localization.currencySymbol}
+                                {rp.priceMonthly.toFixed(2)}
+                              </span>
+                              {rpDiscount && (
+                                <span className="ml-2 font-semibold text-red-600">{rpDiscount}</span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {SHOP_CONFIG.localization.currencySymbol}
+                              {rp.priceMonthly.toFixed(2)}
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       </main>
     </div>

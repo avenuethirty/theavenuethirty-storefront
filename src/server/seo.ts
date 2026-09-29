@@ -759,6 +759,5 @@ export function buildRobotsTxt(origin: string): string {
     "Disallow: /api/",
     "",
     `Sitemap: ${origin}/sitemap.xml`,
-    "",
   ].join("\n");
 }
