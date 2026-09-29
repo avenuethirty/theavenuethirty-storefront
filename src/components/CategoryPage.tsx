@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
 import { Product } from '../types';
-import { Header } from './Header';
 import { PLPGrid } from './PLPGrid';
 import { Breadcrumbs } from './Breadcrumbs';
 import { FilterBar } from './FilterBar';
@@ -14,9 +13,6 @@ import { SHOP_CONFIG } from '../config/shop';
 interface CategoryPageProps {
   onAddToCart: (product: Product) => void;
   onOpenConsultation: () => void;
-  cartCount: number;
-  onOpenCart: () => void;
-  onOpenLocation: () => void;
   onNavigateToProduct?: (product: Product) => void;
   products?: Product[];
   catalogueReady?: boolean;
@@ -25,9 +21,6 @@ interface CategoryPageProps {
 export const CategoryPage: React.FC<CategoryPageProps> = ({
   onAddToCart,
   onOpenConsultation,
-  cartCount,
-  onOpenCart,
-  onOpenLocation,
   onNavigateToProduct,
   products,
   catalogueReady = true,
@@ -91,12 +84,9 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
 
   return (
     <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
-      <Header
-        cartCount={cartCount}
-        onOpenCart={onOpenCart}
-        onOpenConsultation={onOpenConsultation}
-        onOpenLocation={onOpenLocation}
-      />
+      {/* No <Header> here: App.tsx renders the single site-wide header. A second
+          copy stacked on top of it swallowed every tap, and because it was
+          rendered without `onOpenMenu` the hamburger was a dead button. */}
 
       <main className="pt-24">
         <div className="max-w-7xl mx-auto px-6 mb-8">

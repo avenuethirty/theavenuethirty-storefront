@@ -161,8 +161,8 @@ export default function App() {
               catalogueReady={catalogueReady}
             />
           } />
-          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} onOpenLocation={() => setIsLocationOpen(true)} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
-          <Route path="/product/:slug/:typeSlug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} onOpenLocation={() => setIsLocationOpen(true)} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
+          <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
+          <Route path="/product/:slug/:typeSlug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
           <Route path="/product/:slug/:typeSlug/:productId" element={<ProductPage products={catalogue} catalogueReady={catalogueReady} onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} />} />
           <Route path="/product/:slug/:productId" element={<ProductPage products={catalogue} catalogueReady={catalogueReady} onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} />} />
           <Route path="/ai-shopping" element={<AiChatPage onAddToCart={handleAddToCart} products={catalogue} />} />
@@ -172,7 +172,7 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/return-policy" element={<ReturnPolicyPage />} />
           <Route path="/sell" element={<SellPage />} />
-          <Route path="/:collectionSlug" element={<CollectionPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} onOpenLocation={() => setIsLocationOpen(true)} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
+          <Route path="/:collectionSlug" element={<CollectionPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
         </Routes>
       </main>
 

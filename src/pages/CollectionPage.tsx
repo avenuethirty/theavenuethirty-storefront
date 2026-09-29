@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from "react";
 import { Product } from "../types";
-import { Header } from "../components/Header";
 import { PLPGrid } from "../components/PLPGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { FilterBar } from "../components/FilterBar";
@@ -14,9 +13,6 @@ import { DEFAULT_SITE_TITLE, pageTitle, SITE_NAME } from "../utils/seoText";
 interface CollectionPageProps {
   onAddToCart: (product: Product) => void;
   onOpenConsultation: () => void;
-  cartCount: number;
-  onOpenCart: () => void;
-  onOpenLocation: () => void;
   onNavigateToProduct?: (product: Product) => void;
   products?: Product[];
   catalogueReady?: boolean;
@@ -25,9 +21,6 @@ interface CollectionPageProps {
 export const CollectionPage: React.FC<CollectionPageProps> = ({
   onAddToCart,
   onOpenConsultation,
-  cartCount,
-  onOpenCart,
-  onOpenLocation,
   onNavigateToProduct,
   products,
   catalogueReady = true,
@@ -62,7 +55,6 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
   if (!collection) {
     return (
       <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
-        <Header cartCount={cartCount} onOpenCart={onOpenCart} onOpenConsultation={onOpenConsultation} onOpenLocation={onOpenLocation} />
         <main className="pt-24">
           <EmptyState
             title="Collection not found"
@@ -76,11 +68,9 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
 
   return (
     <div className="relative min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased selection:bg-[#1A1A1A] selection:text-white">
-      <Header
-        cartCount={cartCount}
-        onOpenCart={onOpenCart}
-        onOpenConsultation={onOpenConsultation}
-      />
+      {/* No <Header> here: App.tsx renders the single site-wide header. A second
+          copy stacked on top of it swallowed every tap, and because it was
+          rendered without `onOpenMenu` the hamburger was a dead button. */}
 
       <main className="pt-24">
         <div className="max-w-7xl mx-auto px-6 mb-8">
