@@ -1,4 +1,6 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 
 // Inlined from src/utils/typeSlug.ts: this file must stay self-contained
 // (no imports outside api/) or the Vercel serverless bundle breaks.
@@ -515,6 +517,45 @@ app.get('/api/catalogue', async (req, res) => {
     }
   });
 
+  app.get('/api/merchant-feed', async (req, res) => {
+    try {
+      const products = await getCatalogue();
+      const origin = `${req.protocol}://${req.get('host')}`;
+
+      const escapeXml = (value: string) =>
+        value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+      const rows = products.map((p: any) => {
+        const availability =
+          p.availability === 'in_stock' ||
+          p.availability === 'preorder' ||
+          p.availability === 'backorder'
+            ? p.availability
+            : 'out_of_stock';
+
+        return [
+          escapeXml(p.id || p.name),
+          escapeXml(p.name),
+          escapeXml(p.description || ''),
+          escapeXml(`${origin}/product/${p.category}${p.typeSlug ? `/${p.typeSlug}` : ''}/${p.id}`),
+          escapeXml(p.imageUrl || ''),
+          availability,
+          `${p.priceMonthly} PKR`,
+          'new',
+          escapeXml((p.collections || []).join(';')),
+        ].join('\t');
+      });
+
+      const header = 'id\ttitle\tdescription\tlink\timage_link\tavailability\tprice\tcondition\tbrand';
+      const xml = [header, ...rows].join('\n');
+
+      res.status(200).set({ 'Content-Type': 'text/tab-separated-values; charset=utf-8' }).send(xml);
+    } catch (err: any) {
+      console.error('Merchant feed error:', err?.message || err);
+      res.status(500).json({ success: false, error: err?.message || 'Unknown merchant feed error' });
+    }
+  });
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, history } = req.body as { message?: string; history?: Array<{ role: string; content: string }> };
@@ -672,6 +713,83 @@ app.get('/api/location/reverse-geocode', async (req, res) => {
     res.status(500).json({ success: false, error: err?.message || 'Unknown reverse geocode error' });
   }
 });
+
+  const GA4_SNIPPET = `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-60DT6QKVL6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-60DT6QKVL6');
+</script>`;
+
+  app.get('*', async (req, res) => {
+    try {
+      const origin = `${req.protocol}://${req.get('host')}`;
+      const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+      let html = fs.readFileSync(indexPath, 'utf-8');
+
+      const replacements: Record<string, string> = {
+        '<!--seo-ga-->': GA4_SNIPPET,
+      };
+
+      const productMatch = req.path.match(/^\/product\/([^/]+)(?:\/([^/]+))?\/([^/]+)$/);
+      if (productMatch) {
+        const [, , , productId] = productMatch;
+        const products = await getCatalogue();
+        const product = products.find((p: any) => p.id === productId);
+        if (product) {
+          const title = `${product.name} | The Avenue Thirty`;
+          const description = product.description ? product.description.slice(0, 160) : '';
+          const canonicalUrl = `${origin}${req.path}`;
+          const availability =
+            product.availability === 'in_stock' ||
+            product.availability === 'preorder' ||
+            product.availability === 'backorder'
+              ? 'https://schema.org/InStock'
+              : 'https://schema.org/OutOfStock';
+
+          const schema = {
+            '@context': 'https://schema.org/',
+            '@type': 'Product',
+            name: product.name,
+            description: product.description,
+            image: [product.imageUrl, product.imageUrl2, product.imageUrl3].filter(Boolean),
+            offers: {
+              '@type': 'Offer',
+              price: product.priceMonthly,
+              priceCurrency: 'PKR',
+              availability,
+              url: canonicalUrl,
+            },
+          };
+
+          replacements['<!--seo-title-->'] = `<title>${title}</title>`;
+          replacements['<!--seo-meta-->'] = `<meta name="description" content="${description}" />`;
+          replacements['<!--seo-canonical-->'] = `<link rel="canonical" href="${canonicalUrl}" />`;
+          replacements['<!--seo-og-->'] = `
+            <meta property="og:title" content="${title}" />
+            <meta property="og:description" content="${description}" />
+            <meta property="og:type" content="product" />
+            <meta property="og:url" content="${canonicalUrl}" />
+            ${product.imageUrl ? `<meta property="og:image" content="${product.imageUrl}" />` : ''}
+            <meta name="twitter:card" content="summary_large_image" />
+          `;
+          replacements['<!--seo-schema-->'] = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+        }
+      }
+
+      Object.entries(replacements).forEach(([placeholder, tagHtml]) => {
+        html = html.replace(placeholder, tagHtml);
+      });
+
+      res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
+    } catch (err) {
+      console.error('SEO injection failed, serving plain index.html', err);
+      const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+      res.sendFile(indexPath);
+    }
+  });
 
 export default async (req: any, res: any) => {
   app(req, res);
