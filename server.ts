@@ -8,12 +8,22 @@ import {
   buildRobotsTxt,
   buildSitemapXml,
   injectSEO,
+  productPath,
   resolveOrigin,
   resolveSEOMetadata,
   type ProductLike,
 } from './src/server/seo';
 import { SHOP_CONFIG } from './src/config/shop';
 import { toTypeSlug } from './src/utils/typeSlug';
+import {
+  buildSlugIndex,
+  createSlugAudit,
+  describeSlugAudit,
+  detectSlugCollisions,
+  readProductSlug,
+  resolveProductRedirect,
+  type SlugAudit,
+} from './src/utils/productSlug';
 
 dotenv.config();
 
@@ -42,7 +52,7 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
   'toys_kids': 'Toys',
 };
 
-let catalogueCache: { products: any[]; expiresAt: number } | null = null;
+let catalogueCache: { products: any[]; index: ReturnType<typeof buildSlugIndex>; audit: SlugAudit; expiresAt: number } | null = null;
 const CATALOGUE_TTL_MS = 10 * 60 * 1000;
 
 function slugifyCategory(raw: string): string {
@@ -94,7 +104,7 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
-function mapCsvRowToProduct(row: string[], header: string[]): any | null {
+function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): any | null {
   const get = (name: string) => {
     const idx = header.indexOf(name);
     return idx >= 0 ? row[idx] || '' : '';
@@ -113,6 +123,8 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   const collections = get('Collections');
   const status = get('Availability');
   const availability = get('Availability');
+  // Header match is exact, same as every other column read here.
+  const rawSlug = get('Slug');
 
   if (!name) return null;
 
@@ -138,9 +150,14 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
 
   const tagline = type.trim();
 
+  // `id` is deliberately untouched: the SKU fallback, cart identity, and
+  // /api/product/:id all depend on it. Only the URL segment changes.
+  const id = String(sku || name);
+
   return {
-    id: String(sku || name),
+    id,
     name,
+    slug: readProductSlug({ raw: rawSlug, name, id, audit }),
     category: slugifyCategory(category) as any,
     tagline,
     typeSlug: tagline ? toTypeSlug(tagline) : undefined,
@@ -155,24 +172,34 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   };
 }
 
-async function fetchCatalogueFromSheet(): Promise<any[]> {
+async function fetchCatalogueFromSheet(): Promise<{ products: any[]; index: ReturnType<typeof buildSlugIndex>; audit: SlugAudit }> {
   const res = await fetch(GOOGLE_SHEET_CSV_URL);
   if (!res.ok) {
     throw new Error(`Google Sheets CSV fetch failed: ${res.status}`);
   }
   const text = await res.text();
   const rows = parseCsv(text);
-  if (rows.length < 2) return [];
 
-  const header = rows[0];
+  const audit = createSlugAudit();
   const products: any[] = [];
 
-  for (let i = 1; i < rows.length; i++) {
-    const product = mapCsvRowToProduct(rows[i], header);
-    if (product) products.push(product);
+  if (rows.length >= 2) {
+    const header = rows[0];
+    // The availability filter lives inside mapCsvRowToProduct, so the audit
+    // only ever sees products that are actually servable. Running it earlier
+    // would report slugs for rows that never reach a URL.
+    for (let i = 1; i < rows.length; i++) {
+      const product = mapCsvRowToProduct(rows[i], header, audit);
+      if (product) products.push(product);
+    }
   }
 
-  return products;
+  audit.collisions = detectSlugCollisions(products);
+  for (const line of describeSlugAudit(audit)) {
+    console.warn(line);
+  }
+
+  return { products, index: buildSlugIndex(products), audit };
 }
 
 async function getCatalogue(): Promise<any[]> {
@@ -182,9 +209,11 @@ async function getCatalogue(): Promise<any[]> {
   }
 
   try {
-    const sheetProducts = await fetchCatalogueFromSheet();
+    const { products, index, audit } = await fetchCatalogueFromSheet();
     catalogueCache = {
-      products: sheetProducts,
+      products,
+      index,
+      audit,
       expiresAt: now + CATALOGUE_TTL_MS,
     };
 
@@ -193,7 +222,7 @@ async function getCatalogue(): Promise<any[]> {
       getCatalogue().catch(() => {});
     }, CATALOGUE_TTL_MS);
 
-    return sheetProducts;
+    return products;
   } catch (err) {
     console.error('Catalogue fetch failed, using stale cache if available:', err);
     if (catalogueCache) {
@@ -201,6 +230,15 @@ async function getCatalogue(): Promise<any[]> {
     }
     return [];
   }
+}
+
+// Populates the slug index alongside the catalogue so the 301 below resolves in
+// one pass. Rebuilt on every cache refresh rather than held as a module-level
+// constant, so it can never drift from the products it indexes.
+async function getSlugIndex(): Promise<ReturnType<typeof buildSlugIndex>> {
+  await getCatalogue();
+  if (catalogueCache) return catalogueCache.index;
+  return buildSlugIndex([]);
 }
 
 function buildCatalogSnippet(products: any[], limitPerCategory = 10): string {
@@ -281,6 +319,32 @@ async function createApp() {
     }
   });
 
+  // Lets the sheet be fixed without a redeploy: blank Slug cells, cells that
+  // were rewritten by normalisation, over-length cells, and duplicate slugs
+  // with the winning SKU. Computed from live data, so it reflects exactly the
+  // products the parser kept.
+  app.get('/api/slug-audit', async (req, res) => {
+    try {
+      const products = (await getCatalogue()) as ProductLike[];
+      const index = catalogueCache ? catalogueCache.index : buildSlugIndex(products);
+      const audit = catalogueCache ? catalogueCache.audit : { ...createSlugAudit(), collisions: detectSlugCollisions(products) };
+
+      res.json({
+        totalProducts: products.length,
+        uniqueSlugs: index.bySlug.size,
+        blankSlugCells: audit.blankCells,
+        computed: audit.computed,
+        normalised: audit.normalised,
+        overLength: audit.overLength,
+        collisions: audit.collisions,
+        warnings: describeSlugAudit(audit),
+      });
+    } catch (err: any) {
+      console.error('slug-audit error:', err?.message || err);
+      res.status(500).json({ success: false, error: err?.message || 'Unknown slug-audit error' });
+    }
+  });
+
   app.get('/api/merchant-feed', async (req, res) => {
     try {
       const products = await getCatalogue();
@@ -298,10 +362,12 @@ async function createApp() {
             : 'out_of_stock';
 
         return [
+          // The feed `id` column stays the SKU: a feed identifier should not
+          // churn when the URL slug changes.
           escapeXml(p.id || p.name),
           escapeXml(p.name),
           escapeXml(p.description || ''),
-          escapeXml(`${origin}/product/${p.category}${p.typeSlug ? `/${p.typeSlug}` : ''}/${p.id}`),
+          escapeXml(`${origin}${productPath(p)}`),
           escapeXml(p.imageUrl || ''),
           availability,
           `${p.priceMonthly} PKR`,
@@ -598,6 +664,26 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
         .status(500)
         .set({ 'Content-Type': 'application/xml; charset=utf-8' })
         .send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+    }
+  });
+
+  // Legacy SKU product URLs -> the slug URL, as a real 301.
+  //
+  // Registered ahead of both the Vite middleware (dev) and express.static
+  // (prod) so the redirect is an HTTP status a crawler and a cold load see,
+  // not a client-side navigate(). Only a numeric id is a redirect candidate,
+  // and never a path that already equals the product's own canonical URL, so
+  // there is no loop and a mistyped type URL is left to stay noindex.
+  app.get('/product/*', async (req, res, next) => {
+    try {
+      const index = await getSlugIndex();
+      const segments = req.path.split('/').filter((segment) => segment.length > 0);
+      const target = resolveProductRedirect(index, segments);
+      if (!target) return next();
+      return res.redirect(301, target);
+    } catch (err: any) {
+      console.error('Product redirect error:', err?.message || err);
+      return next();
     }
   });
 

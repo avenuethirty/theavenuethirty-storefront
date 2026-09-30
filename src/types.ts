@@ -1,6 +1,9 @@
 export interface Product {
   id: string;
   name: string;
+  // URL segment, frozen in the sheet's `Slug` column so a title edit can never
+  // orphan a URL. Always use productPath() rather than assembling one.
+  slug: string;
   category:
     | "clothing_apparel"
     | "skincare_beauty"

@@ -25,8 +25,13 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   products,
   catalogueReady = true,
 }) => {
-  const { slug, typeSlug: rawTypeSlug } = useParams<{ slug: string; typeSlug?: string }>();
-  const category = slug || '';
+  // The 3-segment route is served by ProductOrCategoryPage, which hands the
+  // last segment to this page only when it is a type slug rather than a
+  // product. That route names the segment :productId, so read both param
+  // names rather than assuming the old /product/:slug/:typeSlug path.
+  const params = useParams<{ slug: string; typeSlug?: string; productId?: string }>();
+  const category = params.slug || '';
+  const rawTypeSlug = params.productId ?? params.typeSlug;
   const label = getCategoryLabel(category);
 
   const [searchParams] = useSearchParams();

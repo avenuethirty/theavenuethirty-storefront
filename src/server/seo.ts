@@ -1,6 +1,12 @@
 import { SHOP_CONFIG } from "../config/shop";
 import { formatTypeLabel } from "../utils/typeSlug";
 import { DEFAULT_SITE_TITLE, pageTitle, sanitizeSeoText, SITE_NAME } from "../utils/seoText";
+import {
+  buildSlugIndex,
+  productPath,
+  resolveProductSegment,
+  type SlugIndex,
+} from "../utils/productSlug";
 
 const SCHEMA_CONTEXT = "https://schema.org/";
 const MAX_META_DESCRIPTION = 158;
@@ -24,6 +30,7 @@ export interface ProductLike {
   id: string;
   name: string;
   category: string;
+  slug?: string;
   tagline?: string;
   typeSlug?: string;
   priceMonthly?: number;
@@ -185,10 +192,11 @@ export function normalizePath(rawPath: string): string {
   return collapsed;
 }
 
-export function productPath(product: ProductLike): string {
-  const typeSegment = product.typeSlug ? `/${product.typeSlug}` : "";
-  return `/product/${product.category}${typeSegment}/${product.id}`;
-}
+// Re-exported so callers that already import the SEO module keep one import
+// site for product URLs. The builder itself lives in src/utils/productSlug.ts
+// because the client, the server, and the serverless mirror all need it and
+// none of them can agree on a second copy.
+export { productPath };
 
 export function categoryPath(slug: string): string {
   return `/product/${slug}`;
@@ -310,9 +318,10 @@ export function generateProductSEO(product: ProductLike, origin: string, canonic
     product.description || `${product.name} at ${SITE_NAME}. Cash on delivery across Pakistan.`,
     MAX_META_DESCRIPTION
   );
-  // Always canonicalise to the product's own /product/:category/:typeSlug/:id
-  // form so alternate URL shapes (short /product/:category/:id, wrong category
-  // in the path) consolidate onto one indexable URL.
+  // Always canonicalise to the product's own /product/:category/:typeSlug/:slug
+  // form so alternate URL shapes (legacy /product/:category/:sku, a 3-segment
+  // path, a wrong category or type in the path) consolidate onto one
+  // indexable URL.
   const canonicalUrl = `${origin}${canonicalPath || productPath(product)}`;
   const images = productImages(product);
   const price = typeof product.priceMonthly === "number" && Number.isFinite(product.priceMonthly)
@@ -505,10 +514,8 @@ function generateNoindexSEO(origin: string, canonicalPath: string): SEOMetadata 
   };
 }
 
-function findProduct(products: ProductLike[], id: string): ProductLike | undefined {
-  if (!id) return undefined;
-  const needle = id.trim();
-  return products.find((product) => product.id === needle);
+function findProduct(index: SlugIndex<ProductLike>, segment: string | undefined): ProductLike | undefined {
+  return resolveProductSegment(index, undefined, segment).product;
 }
 
 function typeLabelFor(products: ProductLike[], slug: string, typeSlug: string): string | undefined {
@@ -559,6 +566,10 @@ function resolveSEOMetadataRaw(
 
   if (segments[0] === "product") {
     const slug = segments[1] || "";
+    // One index, one resolution order, shared with the 301 middleware: slug
+    // before id before type. A product slug that happens to equal a live type
+    // slug still resolves to the product.
+    const index = buildSlugIndex(products);
 
     if (segments.length === 2) {
       const scopedProducts = categoryProductsFor(products, slug);
@@ -571,15 +582,15 @@ function resolveSEOMetadataRaw(
     }
 
     if (segments.length === 3) {
-      const product = findProduct(products, segments[2]);
-      if (product) {
-        return generateProductSEO(product, origin);
+      const resolution = resolveProductSegment(index, slug, segments[2]);
+      if (resolution.product) {
+        return generateProductSEO(resolution.product, origin);
       }
       const typeSlug = segments[2];
       const label = getCategoryLabelForSlug(slug);
-      const typeLabel = typeLabelFor(products, slug, typeSlug);
+      const typeLabel = resolution.kind === "type" ? typeLabelFor(products, slug, typeSlug) : undefined;
       if (!typeLabel) {
-        // Neither a product id nor a live type slug: stale or mistyped URL.
+        // Neither a product ref nor a live type slug: stale or mistyped URL.
         return generateNoindexSEO(origin, cleanPath);
       }
       return generateCategorySEO(slug, label, origin, {
@@ -590,7 +601,11 @@ function resolveSEOMetadataRaw(
     }
 
     if (segments.length === 4) {
-      const product = findProduct(products, segments[3]);
+      // A stale type segment in the middle does not disqualify the product:
+      // the canonical below rewrites the path to the product's real category
+      // and type. A stale *last* segment is not a product at all and falls
+      // through to noindex, which is where a mistyped type URL belongs.
+      const product = findProduct(index, segments[3]);
       if (product) {
         return generateProductSEO(product, origin);
       }

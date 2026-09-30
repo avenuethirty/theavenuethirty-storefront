@@ -6,9 +6,12 @@ import { getDiscountBadge } from '../utils/discount';
 import { getCollectionBySlug, matchCollection } from '../utils/collections';
 import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
 import { DEFAULT_SITE_TITLE, pageTitle, sanitizeSeoText, SITE_NAME } from '../utils/seoText';
+import { findProductByRef, productPath } from '../utils/productSlug';
 import { getRelatedProducts } from '../utils/recommendations';
 import { Check, Plus } from 'lucide-react';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+
+const SITE_ORIGIN = `https://${SHOP_CONFIG.domain}`;
 
 interface ProductPageProps {
   products: Product[];
@@ -23,17 +26,26 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   onAddToCart,
   onOpenConsultation,
 }) => {
-  const { slug: categorySlug, typeSlug, productId } = useParams<{
-    slug: string;
-    typeSlug?: string;
-    productId: string;
-  }>();
+  // The 3-segment route binds its last segment to :productId, the 4-segment
+  // route binds it to :productId with :typeSlug in the middle. Read the names
+  // the routes actually use rather than assuming one shape.
+  const params = useParams<{ slug: string; typeSlug?: string; productId?: string }>();
+  const categorySlug = params.slug;
+  const productRef = params.productId;
+  const typeSlug = params.productId ? params.typeSlug : undefined;
 
   const navigate = useNavigate();
   const [added, setAdded] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const product = useMemo(() => products.find((p) => p.id === productId), [products, productId]);
+  // Slug first, id second — the same order the server resolves in, so a legacy
+  // SKU URL and its slug URL both render the same product.
+  const product = useMemo(() => findProductByRef(products, productRef), [products, productRef]);
+  // The one canonical URL for this product, whatever the address bar holds.
+  // Used for the canonical tag, the JSON-LD, and the canonicalisation
+  // navigate() below, so all three can never disagree.
+  const canonicalPath = useMemo(() => (product ? productPath(product) : ''), [product]);
+  const canonicalUrl = canonicalPath ? `${SITE_ORIGIN}${canonicalPath}` : '';
   const categoryLabel = useMemo(() => {
     const cat = getCollectionBySlug(categorySlug || '');
     return cat?.title || categorySlug || '';
@@ -70,7 +82,18 @@ export const ProductPage: React.FC<ProductPageProps> = ({
 
   useEffect(() => {
     setCurrentImageIndex(0);
-  }, [productId]);
+  }, [productRef]);
+
+  // A legacy SKU URL, a 3-segment product URL, or a path with the wrong
+  // category/type all render the right product but sit on a non-canonical
+  // address. The server answers those with a 301 in production; this is the
+  // same rewrite for `npm run dev` and for in-app navigation. Replaces rather
+  // than pushes, so the back button does not bounce through the redirect.
+  useEffect(() => {
+    if (!product || !canonicalPath || !productRef) return;
+    if (canonicalPath.endsWith(`/${productRef}`)) return;
+    navigate(canonicalPath, { replace: true });
+  }, [product, canonicalPath, productRef, navigate]);
 
   useEffect(() => {
     if (!product) return;
@@ -81,19 +104,19 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   }, [product]);
 
   useEffect(() => {
-    if (!product) return;
+    if (!product || !canonicalUrl) return;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
       meta.setAttribute('content', sanitizeSeoText(product.description).slice(0, 160));
     }
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) {
-      canonical.setAttribute('href', `https://theavenuethirty.com/product/${categorySlug}${typeSlug ? `/${typeSlug}` : ''}/${productId}`);
+      canonical.setAttribute('href', canonicalUrl);
     }
-  }, [product, categorySlug, typeSlug, productId]);
+  }, [product, canonicalUrl]);
 
   useEffect(() => {
-    if (!product) return;
+    if (!product || !canonicalUrl) return;
     const existing = document.getElementById('product-jsonld');
     if (existing) existing.remove();
 
@@ -104,6 +127,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({
     const schema = {
       '@context': 'https://schema.org/',
       '@type': 'Product',
+      // Same @id and offers.url the server renders, so the two scripts can
+      // never point at different addresses for the same product.
+      '@id': `${canonicalUrl}#product`,
       name: product.name,
       description: product.description,
       image: images,
@@ -112,7 +138,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
         price: product.priceMonthly,
         priceCurrency: 'PKR',
         availability,
-        url: `https://theavenuethirty.com/product/${categorySlug}${typeSlug ? `/${typeSlug}` : ''}/${productId}`,
+        url: canonicalUrl,
       },
     };
 
@@ -126,7 +152,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
       const el = document.getElementById('product-jsonld');
       if (el) el.remove();
     };
-  }, [product, images, categorySlug, typeSlug, productId]);
+  }, [product, images, canonicalUrl]);
 
   if (!catalogueReady) {
     return (
@@ -253,7 +279,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                   return (
                     <Link
                       key={rp.id}
-                      to={`/product/${rp.category}${rp.typeSlug ? `/${rp.typeSlug}` : ''}/${rp.id}`}
+                      to={productPath(rp)}
                       className="group flex flex-col"
                       onMouseEnter={() => setHoveredProductId(rp.id)}
                       onMouseLeave={() => setHoveredProductId(null)}

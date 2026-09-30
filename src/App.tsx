@@ -9,6 +9,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './components/CategoryPage';
+import { ProductOrCategoryPage } from './components/ProductOrCategoryPage';
 import { CollectionPage } from './pages/CollectionPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
@@ -19,6 +20,7 @@ import { SellPage } from './pages/SellPage';
 import { ProductPage } from './pages/ProductPage';
 import { Product, CartItem } from './types';
 import { fetchCatalogue } from './utils/catalogue';
+import { productPath } from './utils/productSlug';
 import { LocationProvider } from './context/LocationContext';
 import { LocationModal } from './components/LocationModal';
 
@@ -107,13 +109,11 @@ export default function App() {
     setIsCartOpen(true);
   };
 
+  // productPath() already branches on typeSlug to pick the 3- vs 4-segment
+  // shape, which is the behaviour the URL scheme depends on: the handful of
+  // products with no Type keep their shallower, already-indexed URLs.
   const handleNavigateToProduct = (product: Product) => {
-    const typeSlug = product.typeSlug || '';
-    if (typeSlug) {
-      navigate(`/product/${product.category}/${typeSlug}/${product.id}`);
-    } else {
-      navigate(`/product/${product.category}/${product.id}`);
-    }
+    navigate(productPath(product));
   };
 
   const handleUpdateQuantity = (productId: string, quantity: number) => {
@@ -162,9 +162,10 @@ export default function App() {
             />
           } />
           <Route path="/product/:slug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
-          <Route path="/product/:slug/:typeSlug" element={<CategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
+          {/* One route for both 3-segment meanings. See ProductOrCategoryPage
+              for why a static product-before-type order cannot work. */}
+          <Route path="/product/:slug/:productId" element={<ProductOrCategoryPage onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} onNavigateToProduct={handleNavigateToProduct} products={catalogue} catalogueReady={catalogueReady} />} />
           <Route path="/product/:slug/:typeSlug/:productId" element={<ProductPage products={catalogue} catalogueReady={catalogueReady} onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} />} />
-          <Route path="/product/:slug/:productId" element={<ProductPage products={catalogue} catalogueReady={catalogueReady} onAddToCart={handleAddToCart} onOpenConsultation={() => handleOpenAiChat()} />} />
           <Route path="/ai-shopping" element={<AiChatPage onAddToCart={handleAddToCart} products={catalogue} />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage onOpenConsultation={(query) => handleOpenAiChat(query)} />} />

@@ -2,14 +2,324 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 
-// Inlined from src/utils/typeSlug.ts: this file must stay self-contained
-// (no imports outside api/) or the Vercel serverless bundle breaks.
+// ---------------------------------------------------------------------------
+// Inlined from src/utils/typeSlug.ts and src/utils/productSlug.ts: this file
+// must stay self-contained (no imports outside api/) or the Vercel serverless
+// bundle breaks and every /api/* route dies with FUNCTION_INVOCATION_FAILED.
+// The 301 middleware, the slug parser, and productPath() below all come from
+// these two modules — keep them byte-for-byte equivalent to the originals.
+// ---------------------------------------------------------------------------
 function toTypeSlug(raw: string): string {
   return raw
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+// Longest slug we are willing to invent from a product name. Applied to
+// computed slugs only — a `Slug` cell in the sheet is frozen, so truncating it
+// would serve a URL that disagrees with the value the operator typed.
+const MAX_SLUG_LENGTH = 60;
+
+// Normalisation for product slugs. Deliberately layered on top of
+// toTypeSlug() rather than reimplementing it, so a type slug and a product slug
+// can never drift apart: the diacritic strip and the `&` -> `and` mapping run
+// first, then the shared lowercase/collapse/trim pass, then the length cap.
+//
+// Stopwords are intentionally NOT removed. A slug that drops `for`/`with`/`the`
+// can no longer be recomputed from the name, so the sheet-to-URL mapping stops
+// being verifiable, and the length saving is negligible.
+function normaliseProductSlug(
+  raw: string,
+  options: { maxLength?: number | null } = {}
+): string {
+  if (!raw) return "";
+  const { maxLength = MAX_SLUG_LENGTH } = options;
+
+  const deaccented = raw
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    // `&` becomes a word rather than disappearing, so "Salt & Pepper" and
+    // "Salt and Pepper" cannot collapse onto the same URL.
+    .replace(/&/g, " and ");
+
+  const slug = toTypeSlug(deaccented);
+  if (!slug) return "";
+  if (maxLength === null || slug.length <= maxLength) return slug;
+
+  // Truncate at a word boundary, never mid-word.
+  const cut = slug.slice(0, maxLength);
+  const lastHyphen = cut.lastIndexOf("-");
+  const base = lastHyphen > maxLength * 0.6 ? cut.slice(0, lastHyphen) : cut;
+  return base.replace(/-+$/g, "");
+}
+
+// Fallback slug for a row whose `Slug` cell is blank. Returns "" when neither
+// the name nor the id yields anything, so the caller can decide what to do.
+function computeSlugFromName(
+  name: string,
+  id: string,
+  options: { maxLength?: number | null } = {}
+): string {
+  return normaliseProductSlug(name, options) || normaliseProductSlug(id, options);
+}
+
+interface SlugProductLike {
+  id: string;
+  name: string;
+  category: string;
+  typeSlug?: string;
+  slug?: string;
+}
+
+/**
+ * The one and only product URL shape:
+ *   `/product/:category[/:typeSlug]/:slug`
+ *
+ * 4 segments when the product has a type, 3 when it does not — the same split
+ * the previous id-based builder used, so the 6 typeless bags keep their URL
+ * depth. Falls back to `id` so a product that somehow arrives without a slug
+ * still links somewhere that resolves.
+ */
+function productPath(product: SlugProductLike): string {
+  const typeSegment = product.typeSlug ? `/${product.typeSlug}` : "";
+  return `/product/${product.category}${typeSegment}/${product.slug || product.id}`;
+}
+
+interface SlugIndex<T extends SlugProductLike> {
+  bySlug: Map<string, T>;
+  byId: Map<string, T>;
+  typesByCategory: Map<string, Set<string>>;
+}
+
+/**
+ * Deterministic ordering for duplicate keys. Sheet row order is arbitrary and
+ * changes on insert, so "first row wins" would silently reassign a slug; the
+ * lowest numeric SKU wins instead, with a string compare as the final
+ * tie-break so non-numeric ids are ordered too.
+ *
+ * Returns <0 when `a` should win, >0 when `b` should win. Single source of
+ * truth for both the map writes and the collision report, so the "keeping
+ * SKU N" line can never disagree with the map it describes.
+ */
+function compareCandidates(a: SlugProductLike, b: SlugProductLike): number {
+  const aId = (a.id || "").trim();
+  const bId = (b.id || "").trim();
+  const aNum = /^\d+$/.test(aId) ? Number(aId) : Number.POSITIVE_INFINITY;
+  const bNum = /^\d+$/.test(bId) ? Number(bId) : Number.POSITIVE_INFINITY;
+  if (aNum !== bNum) return aNum - bNum;
+  if (aId < bId) return -1;
+  if (aId > bId) return 1;
+  return 0;
+}
+
+function put<T extends SlugProductLike>(map: Map<string, T>, key: string, value: T): void {
+  const existing = map.get(key);
+  map.set(key, existing && compareCandidates(existing, value) <= 0 ? existing : value);
+}
+
+function buildSlugIndex<T extends SlugProductLike>(products: T[]): SlugIndex<T> {
+  const bySlug = new Map<string, T>();
+  const byId = new Map<string, T>();
+  const typesByCategory = new Map<string, Set<string>>();
+
+  for (const product of products) {
+    if (!product) continue;
+    if (product.slug) put(bySlug, product.slug, product);
+    if (product.id) put(byId, product.id, product);
+    if (product.typeSlug && product.category) {
+      let types = typesByCategory.get(product.category);
+      if (!types) {
+        types = new Set<string>();
+        typesByCategory.set(product.category, types);
+      }
+      types.add(product.typeSlug);
+    }
+  }
+
+  return { bySlug, byId, typesByCategory };
+}
+
+type ProductSegmentKind = "product" | "legacy-id" | "type" | "unknown";
+
+interface ProductSegmentResolution<T extends SlugProductLike> {
+  kind: ProductSegmentKind;
+  product?: T;
+}
+
+/**
+ * Product-before-type, in the order that keeps every existing URL working:
+ *   1. slug match                -> product
+ *   2. id match                  -> legacy SKU URL (renderable, redirect
+ *                                   candidate for numeric SKUs)
+ *   3. live type slug in scope   -> type listing
+ *   4. anything else             -> unknown (noindex, never a redirect)
+ *
+ * Resolution is total: anything that resolves today keeps resolving. The
+ * numeric restriction lives in resolveProductRedirect instead, so tightening
+ * what we redirect at never tightens what we can render.
+ */
+function resolveProductSegment<T extends SlugProductLike>(
+  index: SlugIndex<T>,
+  categorySlug: string | undefined,
+  segment: string | undefined
+): ProductSegmentResolution<T> {
+  const needle = (segment || "").trim();
+  if (!needle) return { kind: "unknown" };
+
+  const bySlug = index.bySlug.get(needle);
+  if (bySlug) return { kind: "product", product: bySlug };
+
+  const byId = index.byId.get(needle);
+  if (byId) return { kind: "legacy-id", product: byId };
+
+  if (categorySlug && index.typesByCategory.get(categorySlug)?.has(needle)) {
+    return { kind: "type" };
+  }
+
+  return { kind: "unknown" };
+}
+
+function joinSegments(segments: string[]): string {
+  return `/${segments.filter((segment) => segment.length > 0).join("/")}`;
+}
+
+/**
+ * The path a legacy SKU URL should 301 to, or null when there is nothing to
+ * redirect. Returns null for:
+ *   - non-product paths
+ *   - a segment that resolves to a slug (already canonical) or to a type
+ *   - a non-numeric segment, so a mistyped type URL is never a redirect
+ *     candidate: it is not a legacy SKU URL and must stay noindex
+ *   - a numeric id that is already the product's own canonical path (the loop
+ *     guard: a redirect to itself would be a 301 cycle)
+ */
+function resolveProductRedirect<T extends SlugProductLike>(
+  index: SlugIndex<T>,
+  segments: string[]
+): string | null {
+  if (segments.length !== 3 && segments.length !== 4) return null;
+  if (segments[0] !== "product") return null;
+
+  const last = (segments[segments.length - 1] || "").trim();
+  if (!/^\d+$/.test(last)) return null;
+
+  const resolution = resolveProductSegment(index, segments[1], last);
+  if (resolution.kind !== "legacy-id" || !resolution.product) return null;
+
+  const target = productPath(resolution.product);
+  return target === joinSegments(segments) ? null : target;
+}
+
+interface SlugAuditEntry {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface SlugNormalisationEntry extends SlugAuditEntry {
+  raw: string;
+}
+
+interface SlugCollision {
+  slug: string;
+  entries: SlugAuditEntry[];
+}
+
+interface SlugAudit {
+  computed: SlugAuditEntry[];
+  normalised: SlugNormalisationEntry[];
+  overLength: SlugAuditEntry[];
+  blankCells: number;
+  collisions: SlugCollision[];
+}
+
+function createSlugAudit(): SlugAudit {
+  return { computed: [], normalised: [], overLength: [], blankCells: 0, collisions: [] };
+}
+
+/**
+ * Read the `Slug` sheet cell and return the slug to serve.
+ *
+ * A non-empty cell is normalised for characters but never truncated: the
+ * column is the frozen source of truth, so silently shortening a value the
+ * operator typed would serve a URL that disagrees with the sheet forever. The
+ * length cap applies only to slugs we invent via `computeSlugFromName`.
+ */
+function readProductSlug({ raw, name, id, audit }: { raw: string; name: string; id: string; audit?: SlugAudit }): string {
+  const cell = (raw || "").trim();
+
+  if (!cell) {
+    const slug = computeSlugFromName(name, id);
+    if (audit) {
+      audit.blankCells += 1;
+      audit.computed.push({ id, name, slug });
+    }
+    return slug;
+  }
+
+  const slug = normaliseProductSlug(cell, { maxLength: null });
+  if (audit) {
+    if (slug !== cell) audit.normalised.push({ id, name, raw: cell, slug });
+    if (slug.length > MAX_SLUG_LENGTH) audit.overLength.push({ id, name, slug });
+  }
+  return slug;
+}
+
+/** Duplicate slugs, lowest-SKU-wins ordering, so the report is stable. */
+function detectSlugCollisions<T extends SlugProductLike>(products: T[]): SlugCollision[] {
+  const groups = new Map<string, T[]>();
+  for (const product of products) {
+    if (!product?.slug) continue;
+    const group = groups.get(product.slug);
+    if (group) group.push(product);
+    else groups.set(product.slug, [product]);
+  }
+
+  const collisions: SlugCollision[] = [];
+  for (const [slug, group] of groups) {
+    if (group.length < 2) continue;
+    collisions.push({
+      slug,
+      entries: [...group]
+        .sort(compareCandidates)
+        .map((product) => ({ id: product.id, name: product.name, slug })),
+    });
+  }
+  collisions.sort((a, b) => a.slug.localeCompare(b.slug));
+  return collisions;
+}
+
+/** Human-readable warnings. Both servers log exactly these lines so a drift
+ *  shows up identically in local dev and in the Vercel function logs. */
+function describeSlugAudit(audit: SlugAudit): string[] {
+  const lines: string[] = [];
+
+  for (const collision of audit.collisions) {
+    lines.push(
+      `[slug-audit] duplicate slug "${collision.slug}" on ${collision.entries
+        .map((entry) => `${entry.id} (${entry.name})`)
+        .join(", ")} — keeping ${collision.entries[0]?.id ?? "?"}`
+    );
+  }
+  for (const entry of audit.computed) {
+    lines.push(
+      `[slug-audit] blank Slug cell for ${entry.id} (${entry.name}) — computed "${entry.slug}"; paste it into the sheet`
+    );
+  }
+  for (const entry of audit.normalised) {
+    lines.push(
+      `[slug-audit] Slug cell "${entry.raw}" for ${entry.id} (${entry.name}) normalised to "${entry.slug}"`
+    );
+  }
+  for (const entry of audit.overLength) {
+    lines.push(
+      `[slug-audit] slug "${entry.slug}" for ${entry.id} is ${entry.slug.length} chars (cap is ${MAX_SLUG_LENGTH}); served as-is because the sheet column is frozen`
+    );
+  }
+
+  return lines;
 }
 
 
@@ -80,12 +390,8 @@ const GA4_SNIPPET = `<!-- Google tag (gtag.js) -->
   gtag('config', 'G-60DT6QKVL6');
 </script>`;
 
-interface ProductLike {
-  id: string;
-  name: string;
-  category: string;
+interface ProductLike extends SlugProductLike {
   tagline?: string;
-  typeSlug?: string;
   priceMonthly?: number;
   originalPrice?: number;
   imageUrl?: string;
@@ -253,11 +559,6 @@ function normalizePath(rawPath: string): string {
   return collapsed;
 }
 
-function productPath(product: ProductLike): string {
-  const typeSegment = product.typeSlug ? `/${product.typeSlug}` : "";
-  return `/product/${product.category}${typeSegment}/${product.id}`;
-}
-
 function categoryPath(slug: string): string {
   return `/product/${slug}`;
 }
@@ -378,9 +679,10 @@ function generateProductSEO(product: ProductLike, origin: string, canonicalPath?
     product.description || `${product.name} at ${SITE_NAME}. Cash on delivery across Pakistan.`,
     MAX_META_DESCRIPTION
   );
-  // Always canonicalise to the product's own /product/:category/:typeSlug/:id
-  // form so alternate URL shapes (short /product/:category/:id, wrong category
-  // in the path) consolidate onto one indexable URL.
+  // Always canonicalise to the product's own /product/:category/:typeSlug/:slug
+  // form so alternate URL shapes (legacy /product/:category/:sku, a 3-segment
+  // path, a wrong category or type in the path) consolidate onto one
+  // indexable URL.
   const canonicalUrl = `${origin}${canonicalPath || productPath(product)}`;
   const images = productImages(product);
   const price = typeof product.priceMonthly === "number" && Number.isFinite(product.priceMonthly)
@@ -573,10 +875,8 @@ function generateNoindexSEO(origin: string, canonicalPath: string): SEOMetadata 
   };
 }
 
-function findProduct(products: ProductLike[], id: string): ProductLike | undefined {
-  if (!id) return undefined;
-  const needle = id.trim();
-  return products.find((product) => product.id === needle);
+function findProduct(index: SlugIndex<ProductLike>, segment: string | undefined): ProductLike | undefined {
+  return resolveProductSegment(index, undefined, segment).product;
 }
 
 function typeLabelFor(products: ProductLike[], slug: string, typeSlug: string): string | undefined {
@@ -627,6 +927,10 @@ function resolveSEOMetadataRaw(
 
   if (segments[0] === "product") {
     const slug = segments[1] || "";
+    // One index, one resolution order, shared with the 301 middleware: slug
+    // before id before type. A product slug that happens to equal a live type
+    // slug still resolves to the product.
+    const index = buildSlugIndex(products);
 
     if (segments.length === 2) {
       const scopedProducts = categoryProductsFor(products, slug);
@@ -639,15 +943,15 @@ function resolveSEOMetadataRaw(
     }
 
     if (segments.length === 3) {
-      const product = findProduct(products, segments[2]);
-      if (product) {
-        return generateProductSEO(product, origin);
+      const resolution = resolveProductSegment(index, slug, segments[2]);
+      if (resolution.product) {
+        return generateProductSEO(resolution.product, origin);
       }
       const typeSlug = segments[2];
       const label = getCategoryLabelForSlug(slug);
-      const typeLabel = typeLabelFor(products, slug, typeSlug);
+      const typeLabel = resolution.kind === "type" ? typeLabelFor(products, slug, typeSlug) : undefined;
       if (!typeLabel) {
-        // Neither a product id nor a live type slug: stale or mistyped URL.
+        // Neither a product ref nor a live type slug: stale or mistyped URL.
         return generateNoindexSEO(origin, cleanPath);
       }
       return generateCategorySEO(slug, label, origin, {
@@ -658,7 +962,11 @@ function resolveSEOMetadataRaw(
     }
 
     if (segments.length === 4) {
-      const product = findProduct(products, segments[3]);
+      // A stale type segment in the middle does not disqualify the product:
+      // the canonical below rewrites the path to the product's real category
+      // and type. A stale *last* segment is not a product at all and falls
+      // through to noindex, which is where a mistyped type URL belongs.
+      const product = findProduct(index, segments[3]);
       if (product) {
         return generateProductSEO(product, origin);
       }
@@ -849,7 +1157,7 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
   'toys_kids': 'Toys',
 };
 
-let catalogueCache: { products: any[]; expiresAt: number } | null = null;
+let catalogueCache: { products: any[]; index: SlugIndex<any>; audit: SlugAudit; expiresAt: number } | null = null;
 const CATALOGUE_TTL_MS = 10 * 60 * 1000;
 
 function slugifyCategory(raw: string): string {
@@ -901,7 +1209,7 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
-function mapCsvRowToProduct(row: string[], header: string[]): any | null {
+function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): any | null {
   const get = (name: string) => {
     const idx = header.indexOf(name);
     return idx >= 0 ? row[idx] || '' : '';
@@ -918,6 +1226,8 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   const collections = get('Collections');
   const status = get('Availability');
   const availability = get('Availability');
+  // Header match is exact, same as every other column read here.
+  const rawSlug = get('Slug');
 
   if (!name) return null;
 
@@ -943,9 +1253,14 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
 
   const tagline = type.trim();
 
+  // `id` is deliberately untouched: the SKU fallback and /api/product/:id both
+  // depend on it. Only the URL segment changes.
+  const id = String(sku || name);
+
   return {
-    id: String(sku || name),
+    id,
     name,
+    slug: readProductSlug({ raw: rawSlug, name, id, audit }),
     category: slugifyCategory(category) as any,
     tagline,
     typeSlug: tagline ? toTypeSlug(tagline) : undefined,
@@ -958,24 +1273,34 @@ function mapCsvRowToProduct(row: string[], header: string[]): any | null {
   };
 }
 
-async function fetchCatalogueFromSheet(): Promise<any[]> {
+async function fetchCatalogueFromSheet(): Promise<{ products: any[]; index: SlugIndex<any>; audit: SlugAudit }> {
   const res = await fetch(GOOGLE_SHEET_CSV_URL);
   if (!res.ok) {
     throw new Error(`Google Sheets CSV fetch failed: ${res.status}`);
   }
   const text = await res.text();
   const rows = parseCsv(text);
-  if (rows.length < 2) return [];
 
-  const header = rows[0];
+  const audit = createSlugAudit();
   const products: any[] = [];
 
-  for (let i = 1; i < rows.length; i++) {
-    const product = mapCsvRowToProduct(rows[i], header);
-    if (product) products.push(product);
+  if (rows.length >= 2) {
+    const header = rows[0];
+    // The availability filter lives inside mapCsvRowToProduct, so the audit
+    // only ever sees products that are actually servable. Running it earlier
+    // would report slugs for rows that never reach a URL.
+    for (let i = 1; i < rows.length; i++) {
+      const product = mapCsvRowToProduct(rows[i], header, audit);
+      if (product) products.push(product);
+    }
   }
 
-  return products;
+  audit.collisions = detectSlugCollisions(products);
+  for (const line of describeSlugAudit(audit)) {
+    console.warn(line);
+  }
+
+  return { products, index: buildSlugIndex(products), audit };
 }
 
 async function getCatalogue(): Promise<any[]> {
@@ -985,9 +1310,11 @@ async function getCatalogue(): Promise<any[]> {
   }
 
   try {
-    const sheetProducts = await fetchCatalogueFromSheet();
+    const { products, index, audit } = await fetchCatalogueFromSheet();
     catalogueCache = {
-      products: sheetProducts,
+      products,
+      index,
+      audit,
       expiresAt: now + CATALOGUE_TTL_MS,
     };
 
@@ -996,7 +1323,7 @@ async function getCatalogue(): Promise<any[]> {
       getCatalogue().catch(() => {});
     }, CATALOGUE_TTL_MS);
 
-    return sheetProducts;
+    return products;
   } catch (err) {
     console.error('Catalogue fetch failed, using stale cache if available:', err);
     if (catalogueCache) {
@@ -1004,6 +1331,15 @@ async function getCatalogue(): Promise<any[]> {
     }
     return [];
   }
+}
+
+// Populates the slug index alongside the catalogue so the 301 below resolves in
+// one pass. Rebuilt on every cache refresh rather than held as a module-level
+// constant, so it can never drift from the products it indexes.
+async function getSlugIndex(): Promise<SlugIndex<any>> {
+  await getCatalogue();
+  if (catalogueCache) return catalogueCache.index;
+  return buildSlugIndex([]);
 }
 
 function buildCatalogSnippet(products: any[], limitPerCategory = 10): string {
@@ -1337,10 +1673,38 @@ app.get('/api/catalogue', async (req, res) => {
     }
   });
 
+  // Lets the sheet be fixed without a redeploy: blank Slug cells, cells that
+  // were rewritten by normalisation, over-length cells, and duplicate slugs
+  // with the winning SKU. Computed from live data, so it reflects exactly the
+  // products the parser kept.
+  app.get('/api/slug-audit', async (req, res) => {
+    try {
+      const products = (await getCatalogue()) as ProductLike[];
+      const index = catalogueCache ? catalogueCache.index : buildSlugIndex(products);
+      const audit = catalogueCache
+        ? catalogueCache.audit
+        : { ...createSlugAudit(), collisions: detectSlugCollisions(products) };
+
+      res.json({
+        totalProducts: products.length,
+        uniqueSlugs: index.bySlug.size,
+        blankSlugCells: audit.blankCells,
+        computed: audit.computed,
+        normalised: audit.normalised,
+        overLength: audit.overLength,
+        collisions: audit.collisions,
+        warnings: describeSlugAudit(audit),
+      });
+    } catch (err: any) {
+      console.error('slug-audit error:', err?.message || err);
+      res.status(500).json({ success: false, error: err?.message || 'Unknown slug-audit error' });
+    }
+  });
+
   app.get('/api/merchant-feed', async (req, res) => {
     try {
       const products = await getCatalogue();
-      const origin = `${req.protocol}://${req.get('host')}`;
+      const origin = resolveOrigin(`${req.protocol}://${req.get('host')}`);
 
       const escapeXml = (value: string) =>
         value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1354,10 +1718,12 @@ app.get('/api/catalogue', async (req, res) => {
             : 'out_of_stock';
 
         return [
+          // The feed `id` column stays the SKU: a feed identifier should not
+          // churn when the URL slug changes.
           escapeXml(p.id || p.name),
           escapeXml(p.name),
           escapeXml(p.description || ''),
-          escapeXml(`${origin}/product/${p.category}${p.typeSlug ? `/${p.typeSlug}` : ''}/${p.id}`),
+          escapeXml(`${origin}${productPath(p)}`),
           escapeXml(p.imageUrl || ''),
           availability,
           `${p.priceMonthly} PKR`,
@@ -1561,6 +1927,26 @@ app.get('/sitemap.xml', async (req, res) => {
       .status(500)
       .set({ 'Content-Type': 'application/xml; charset=utf-8' })
       .send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+  }
+});
+
+// Legacy SKU product URLs -> the slug URL, as a real 301.
+//
+// Registered ahead of the SPA fallback so the redirect is an HTTP status a
+// crawler and a cold load see, not a client-side navigate(). Only a numeric id
+// is a redirect candidate, and never a path that already equals the product's
+// own canonical URL, so there is no loop and a mistyped type URL is left to
+// stay noindex.
+app.get('/product/*', async (req: any, res: any, next: any) => {
+  try {
+    const index = await getSlugIndex();
+    const segments = req.path.split('/').filter((segment: string) => segment.length > 0);
+    const target = resolveProductRedirect(index, segments);
+    if (!target) return next();
+    return res.redirect(301, target);
+  } catch (err: any) {
+    console.error('Product redirect error:', err?.message || err);
+    return next();
   }
 });
 
