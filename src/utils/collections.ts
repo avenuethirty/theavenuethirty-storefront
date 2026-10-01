@@ -12,7 +12,6 @@ export function matchCollection(products: Product[], match: {
   minDiscountPct?: number;
   priceMin?: number;
   priceMax?: number;
-  ratingMin?: number;
 }) {
   return products.filter((p) => {
     if (match.collection && !p.collections?.some((c) => c.toLowerCase() === match.collection!.toLowerCase())) {

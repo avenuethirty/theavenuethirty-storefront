@@ -39,7 +39,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
           </Link>
         </>
       )}
-      {typeLabel && typeSlug && (
+      {typeLabel && typeSlug && productName && (
         <>
           <ChevronRight className="w-3 h-3" />
           <Link
@@ -56,7 +56,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
           <span className="text-[#1A1A1A] font-semibold">{productName}</span>
         </>
       )}
-      {!productName && typeLabel && (
+      {!productName && typeLabel && typeSlug && (
         <>
           <ChevronRight className="w-3 h-3" />
           <span className="text-[#1A1A1A]/90 font-semibold">{typeLabel}</span>

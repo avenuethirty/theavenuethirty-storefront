@@ -425,7 +425,6 @@ interface CollectionMatch {
   minDiscountPct?: number;
   priceMin?: number;
   priceMax?: number;
-  ratingMin?: number;
 }
 
 interface SEOCollection {
@@ -461,7 +460,6 @@ const SEO_COLLECTIONS: SEOCollection[] = [
   { slug: "budget-skincare", title: "Skincare Under Rs. 1,000", subtitle: "Gentle care without the splurge", match: { category: "skincare", priceMin: 0, priceMax: 1000 } },
   { slug: "bags-under-1500", title: "Handbags Under Rs. 1,500", subtitle: "Statement bags at a steal", match: { category: "bags", priceMin: 0, priceMax: 1500 } },
   { slug: "bags-clearance", title: "Bags 50%+ Off", subtitle: "Deep discounts on our best bags", match: { category: "bags", minDiscountPct: 50 } },
-  { slug: "top-rated", title: "Top Rated", subtitle: "Our highest-rated picks", match: { ratingMin: 4 } },
 ];
 
 // Mirrors matchCollection() in src/utils/collections.ts so collection pages can
@@ -569,6 +567,37 @@ function typePath(slug: string, typeSlug: string): string {
 
 function collectionPath(slug: string): string {
   return `/${slug}`;
+}
+
+/**
+ * Collections that used to exist and whose URLs may already be indexed.
+ *
+ * Deleting a collection from the collections registry removes it from the
+ * sitemap and makes its URL fall through to the noindex path — which still
+ * answers HTTP 200 with "Collection not found". For an indexed URL that is a
+ * soft-404: the page is gone but reports success, so crawlers keep it in the
+ * index and the equity it held is dropped rather than handed on.
+ *
+ * Retiring a collection therefore has to be a two-part edit: remove it from the
+ * collections registry, then add it here pointing at the surviving page with the
+ * closest intent. resolveRetiredCollectionRedirect() turns it into a real 301.
+ *
+ * Do NOT point these at `/`. A 301 to the homepage is usually worse than a
+ * 410, because it says "this content moved to the top of the site" rather
+ * than admitting it no longer exists.
+ */
+const RETIRED_COLLECTIONS: Record<string, string> = {
+  // "Top Rated" was driven by a rating facet that no longer has data behind it
+  // (the sheet carries no rating column). Best Sellers is the surviving
+  // customer-favourite view, which is the closest equivalent intent.
+  "top-rated": collectionPath("best-sellers"),
+};
+
+/** The path a retired collection slug should 301 to, or null. */
+function resolveRetiredCollectionRedirect(rawPath: string): string | null {
+  const segments = normalizePath(rawPath).split("/").filter((segment) => segment.length > 0);
+  if (segments.length !== 1) return null;
+  return RETIRED_COLLECTIONS[segments[0]] ?? null;
 }
 
 function escapeHtml(value: string): string {
@@ -1209,6 +1238,14 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
+// Splits a packed multi-value sheet cell into a trimmed, non-empty list.
+// Mirrors the existing Collections parser. Undefined when the cell is empty
+// so absent data stays absent on the wire instead of becoming an empty array.
+function parseList(raw: string): string[] | undefined {
+  const values = raw.split(/[;,]/).map((v) => v.trim()).filter(Boolean);
+  return values.length > 0 ? values : undefined;
+}
+
 function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): any | null {
   const get = (name: string) => {
     const idx = header.indexOf(name);
@@ -1222,8 +1259,17 @@ function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): 
   const unitPrice = get('Unit price');
   const discountedPrice = get('Discounted Price');
   const imageUrl = get('Image Url');
+  const imageUrl2 = get('Image2 Url');
+  const imageUrl3 = get('Image3 Url');
   const description = get('Product description');
   const collections = get('Collections');
+  // `Brand` is a single value; `Colors`/`Sizes` are packed cells, so they go
+  // through parseList() like `Collections` does. `Type` is NEVER split on
+  // commas: values such as "Handbag Set, 3 Pcs Bag Set" contain one.
+  const brand = get('Brand').trim();
+  const colors = parseList(get('Colors'));
+  const sizes = parseList(get('Sizes'));
+  const parentSku = get('Parent SKU').trim();
   const status = get('Availability');
   const availability = get('Availability');
   // Header match is exact, same as every other column read here.
@@ -1264,9 +1310,15 @@ function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): 
     category: slugifyCategory(category) as any,
     tagline,
     typeSlug: tagline ? toTypeSlug(tagline) : undefined,
+    brand: brand || undefined,
+    colors,
+    sizes,
+    parentSku: parentSku || undefined,
     priceMonthly,
     originalPrice,
     imageUrl: imageUrl || '',
+    imageUrl2: imageUrl2 || undefined,
+    imageUrl3: imageUrl3 || undefined,
     availability,
     description: description || name,
     collections: collectionList.length > 0 ? collectionList : undefined,
@@ -1928,6 +1980,19 @@ app.get('/sitemap.xml', async (req, res) => {
       .set({ 'Content-Type': 'application/xml; charset=utf-8' })
       .send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
   }
+});
+
+// Retired collection slugs -> their surviving replacement.
+//
+// A collection removed from the registry would otherwise still answer 200 with
+// "Collection not found", which is a soft-404: an indexed URL that reports
+// success while carrying nothing. This runs before the product redirect because
+// it needs no catalogue, so it cannot be delayed by a slow or failing Google
+// Sheets fetch.
+app.get('/:retiredSlug', (req: any, res: any, next: any) => {
+  const target = resolveRetiredCollectionRedirect(req.path);
+  if (!target) return next();
+  return res.redirect(301, target);
 });
 
 // Legacy SKU product URLs -> the slug URL, as a real 301.

@@ -14,7 +14,6 @@ export interface CollectionMatch {
   minDiscountPct?: number;
   priceMin?: number;
   priceMax?: number;
-  ratingMin?: number;
 }
 
 export interface CollectionConfig {
@@ -152,7 +151,7 @@ export const SHOP_CONFIG = {
   // Collections registry — declarative filter-based catalogue views
   // Reachable at flat URLs: /:slug
   // Status-based collections match the sheet's Collections column (case-insensitive).
-  // Creative collections use category, price, discount, or rating filters.
+  // Creative collections use category, price, or discount filters.
   // `card.hidden: true` means the collection is reachable by URL but not
   //   surfaced in the homepage "Shop by Collection" card grid.
   // `card.order` controls position in the card grid (lower = first).
@@ -216,12 +215,6 @@ export const SHOP_CONFIG = {
       title: "Bags 50%+ Off",
       subtitle: "Deep discounts on our best bags",
       match: { category: "bags", minDiscountPct: 50 },
-    },
-    {
-      slug: "top-rated",
-      title: "Top Rated",
-      subtitle: "Our highest-rated picks",
-      match: { ratingMin: 4 },
     },
   ] as CollectionConfig[],
 
@@ -295,9 +288,8 @@ export const SHOP_CONFIG = {
     showBreadcrumbs: true,
     showProductCount: true,
     filters: {
-      categories: ["category", "priceRange", "rating"],
+      categories: ["category", "priceRange"],
       priceRangeSteps: [100, 500, 1000, 2000, 5000],
-      ratingOptions: [4, 3, 2, 1],
     },
     sortOptions: [
       { value: "recommended", label: "Relevance" },

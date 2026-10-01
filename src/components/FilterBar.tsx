@@ -1,209 +1,89 @@
 import React from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { X, Filter } from "lucide-react";
-import { SHOP_CONFIG } from "../config/shop";
-
-const { plp } = SHOP_CONFIG;
-
-const SORT_LABELS: Record<string, string> = {
-  recommended: "Relevance",
-  "price-asc": "Lowest Price",
-  "price-desc": "Highest Price",
-  discount: "Discount",
-  newest: "New Arrivals",
-};
-
-const PRICE_LABELS: Record<number, string> = {
-  100: "Under Rs. 100",
-  500: "Under Rs. 500",
-  1000: "Under Rs. 1,000",
-  2000: "Under Rs. 2,000",
-  5000: "Under Rs. 5,000",
-};
-
-const RATING_LABELS: Record<number, string> = {
-  4: "4+ Stars",
-  3: "3+ Stars",
-  2: "2+ Stars",
-  1: "1+ Star",
-};
+import { Link, useSearchParams } from "react-router-dom";
+import { SlidersHorizontal } from "lucide-react";
+import { Product } from "../types";
+import { FilterSurface } from "../config/filters";
+import { parseFilterParams } from "../hooks/useFilteredProducts";
 
 interface FilterBarProps {
   totalProducts: number;
+  /**
+   * The page's scoped product set, BEFORE query filters — the same array the
+   * modal resolves its groups from.
+   */
+  products: Product[];
+  /** Which facet set this page renders. Must match the modal's `surface`. */
+  surface?: FilterSurface;
+  /** Type crumb currently scoping the page. Links back to the category route. */
   typeLabel?: string;
   category?: string;
+  /** Opens the Filter & Sort drawer. */
+  onOpenFilters?: () => void;
 }
 
-export const FilterBar: React.FC<FilterBarProps> = ({ totalProducts, typeLabel, category }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const currentSort = searchParams.get("sort") || plp.defaultSort;
-  const currentPriceMax = searchParams.get("priceMax") || "";
-  const currentRatingMin = searchParams.get("ratingMin") || "";
-
-  const activeFilters = [
-    ...(typeLabel
-      ? [{
-          key: "type",
-          value: typeLabel,
-          href: category ? `/product/${category}` : undefined,
-        }]
-      : []),
-    ...(currentSort && currentSort !== "recommended"
-      ? [{ key: "sort", value: SORT_LABELS[currentSort] || currentSort }]
-      : []),
-    ...(currentPriceMax
-      ? [{
-          key: "priceMax",
-          value:
-            PRICE_LABELS[Number(currentPriceMax)] ||
-            `Under Rs. ${Number(currentPriceMax).toLocaleString()}`,
-        }]
-      : []),
-    ...(currentRatingMin
-      ? [{
-          key: "ratingMin",
-          value:
-            RATING_LABELS[Number(currentRatingMin)] ||
-            `${Number(currentRatingMin)}+ Stars`,
-        }]
-      : []),
-  ];
-
-  const updateParam = (key: string, value: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
-    }
-    // Changing a filter changes the result set, so reset pagination to page 1.
-    newParams.delete("page");
-    setSearchParams(newParams, { replace: true });
-  };
-
-  const removeFilter = (key: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete(key);
-    setSearchParams(newParams, { replace: true });
-  };
-
-  const clearAll = () => {
-    setSearchParams({}, { replace: true });
-  };
+/**
+ * Trigger only. The sort/price `<select>`s, the active-filter chip row and
+ * Clear All all moved into `FilterSortModal`, which owns every filter write to
+ * the URL; this component reads the active count for the badge and nothing
+ * else, so the two can never disagree about what is selected.
+ *
+ * The badge therefore needs `products` AND `surface`, not just the URL. A value
+ * the parser dropped — a stale `?type=`, a `?sizes=` the sheet has no cell for,
+ * or a `?collection=` on a collection page where that facet is not rendered — is
+ * not an applied filter, so it must not sit in the badge either. It is parsed
+ * here through the SAME call the modal makes, with the SAME products and the
+ * SAME surface, so the count is the count rather than a second opinion.
+ */
+export const FilterBar: React.FC<FilterBarProps> = ({
+  totalProducts,
+  products,
+  // Explicit annotation: with no @types/react the destructure loses its declared
+  // prop types, so the literal default would widen to `string`.
+  surface = "plp" as FilterSurface,
+  typeLabel,
+  category,
+  onOpenFilters,
+}) => {
+  const [searchParams] = useSearchParams();
+  const { activeCount } = parseFilterParams(searchParams, products, surface);
 
   return (
     <div className="mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <span className="text-sm text-[#1A1A1A]/70 font-sans">
-          {totalProducts} Products
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[#1A1A1A]/70 font-sans">
+            {totalProducts} Products
+          </span>
 
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#1A1A1A]/70" />
-            <label className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]/60 font-sans">
-              Sort:
-            </label>
-            <select
-              value={currentSort}
-              onChange={(e) => updateParam("sort", e.target.value)}
-              className="text-xs font-sans text-[#1A1A1A] bg-white border border-[#1A1A1A]/10 rounded-xl px-3 py-1.5 hover:border-[#1A1A1A]/30 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]/20"
+          {/* The category route is the way out of a type-scoped listing, so the
+              crumb keeps its link now that the modal owns the removable type
+              pill. */}
+          {typeLabel && category && (
+            <Link
+              to={`/product/${category}`}
+              className="text-xs font-sans text-[#1A1A1A]/60 hover:text-[#1A1A1A] uppercase tracking-widest transition-colors"
             >
-              {plp.sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]/60 font-sans">
-              Price:
-            </label>
-            <select
-              value={currentPriceMax}
-              onChange={(e) => updateParam("priceMax", e.target.value)}
-              className="text-xs font-sans text-[#1A1A1A] bg-white border border-[#1A1A1A]/10 rounded-xl px-3 py-1.5 hover:border-[#1A1A1A]/30 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]/20"
-            >
-              <option value="">All Prices</option>
-              {plp.filters.priceRangeSteps.map((step) => (
-                <option key={step} value={step}>
-                  {PRICE_LABELS[step]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]/60 font-sans">
-              Rating:
-            </label>
-            <select
-              value={currentRatingMin}
-              onChange={(e) => updateParam("ratingMin", e.target.value)}
-              className="text-xs font-sans text-[#1A1A1A] bg-white border border-[#1A1A1A]/10 rounded-xl px-3 py-1.5 hover:border-[#1A1A1A]/30 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]/20"
-            >
-              <option value="">All Ratings</option>
-              {plp.filters.ratingOptions.map((rating) => (
-                <option key={rating} value={rating}>
-                  {RATING_LABELS[rating]}
-                </option>
-              ))}
-            </select>
-          </div>
+              Shop by {typeLabel}
+            </Link>
+          )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => onOpenFilters?.()}
+          className="inline-flex items-center gap-2 text-xs font-sans text-[#1A1A1A] bg-white border border-[#1A1A1A]/10 rounded-xl pl-3 pr-2 py-1.5 hover:border-[#1A1A1A]/30 transition-colors cursor-pointer"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 text-[#1A1A1A]/70" />
+          <span className="uppercase tracking-widest text-[10px] font-semibold">
+            Filter &amp; Sort
+          </span>
+          {activeCount > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#1A1A1A] text-white text-[10px] font-semibold flex items-center justify-center tabular-nums">
+              {activeCount}
+            </span>
+          )}
+        </button>
       </div>
-
-      {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          {activeFilters.map((filter) => {
-            const isTypeChip = filter.key === "type";
-
-            const chipBody = (
-              <>
-                <span>{filter.value}</span>
-                <X className="w-3 h-3" />
-              </>
-            );
-            const chipClasses = "hover:text-[#1A1A1A]/50 transition-colors";
-
-            return (
-              <div
-                key={filter.key}
-                className="inline-flex items-center gap-1.5 text-xs font-sans text-[#1A1A1A] bg-[#EFEFEF] rounded-full px-3 py-1"
-              >
-                {isTypeChip && filter.href ? (
-                  <Link
-                    to={filter.href}
-                    aria-label={`Remove ${filter.value} filter`}
-                    className={chipClasses}
-                  >
-                    {chipBody}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => removeFilter(filter.key)}
-                    className={chipClasses}
-                    aria-label={`Remove ${filter.key} filter`}
-                  >
-                    {chipBody}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-          <button
-            type="button"
-            onClick={clearAll}
-            className="text-xs font-sans text-[#1A1A1A]/70 hover:text-[#1A1A1A] underline transition-colors cursor-pointer"
-          >
-            Clear All
-          </button>
-        </div>
-      )}
     </div>
   );
 };

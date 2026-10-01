@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import Lenis from 'lenis';
+import { getLenis, registerLenis } from './utils/overlay';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { AiChatPage } from './components/AiChatPage';
@@ -34,11 +35,10 @@ export default function App() {
   const [isLocationOpen, setIsLocationOpen] = useState(false);
 
   const navigate = useNavigate();
-  const lenisRef = useRef<Lenis | null>(null);
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
-  // Only the pagination param should scroll-reset — changing sort/price/rating
-  // filters keeps the scroll position.
+  // Only the pagination param should scroll-reset — changing sort/price filters
+  // keeps the scroll position.
   const pageNumber = searchParams.get('page');
 
   useEffect(() => {
@@ -54,7 +54,10 @@ export default function App() {
       smoothWheel: true,
     });
 
-    lenisRef.current = lenis;
+    // Registered, not just held in a local ref: the overlays need `lenis.stop()`
+    // to actually lock the page, and the layout effect below needs the same
+    // instance. One owner, one reference, no second ref to drift out of sync.
+    registerLenis(lenis);
 
     let rafId = 0;
     function raf(time: number) {
@@ -67,16 +70,19 @@ export default function App() {
     return () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
-      lenisRef.current = null;
+      registerLenis(null);
     };
   }, []);
 
   // Reset scroll to top on every page change, and when the ?page= param
   // changes (pagination shows a fresh result set, so start from the top).
-  // Other query-string changes (e.g. sort/price/rating filters) keep position.
+  // Other query-string changes (e.g. sort/price filters) keep position; the
+  // filter drawer holds its own position across its own writes so that
+  // contract also survives a filter that re-lays the grid out underneath it.
   useLayoutEffect(() => {
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(0, { immediate: true });
+    const lenis = getLenis();
+    if (lenis) {
+      lenis.scrollTo(0, { immediate: true });
     } else {
       window.scrollTo(0, 0);
     }

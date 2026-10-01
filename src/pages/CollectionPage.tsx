@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Product } from "../types";
 import { PLPGrid } from "../components/PLPGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { FilterBar } from "../components/FilterBar";
+import { FilterSortModal } from "../components/FilterSortModal";
 import { getCollectionBySlug, matchCollection } from "../utils/collections";
-import { useParams, useSearchParams } from "react-router-dom";
-import { parseFilterParams, useFilteredProducts } from "../hooks/useFilteredProducts";
+import { useParams } from "react-router-dom";
+import { useFilterParams, useFilteredProducts } from "../hooks/useFilteredProducts";
 import { SHOP_CONFIG } from "../config/shop";
 import { EmptyState } from "../components/EmptyState";
 import { DEFAULT_SITE_TITLE, pageTitle, SITE_NAME } from "../utils/seoText";
@@ -29,15 +30,20 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
   const collection = getCollectionBySlug(collectionSlug || "");
   const catalogue = products || [];
 
-  const [searchParams] = useSearchParams();
-  const filterParams = parseFilterParams(searchParams);
-
   const matchedProducts = useMemo(
     () => (collection ? matchCollection(catalogue, collection.match) : []),
     [catalogue, collection]
   );
 
+  // The collection's own set is the scope: a facet value that matches nothing
+  // here cannot be selected, so the URL is healed against these rows.
+  // `surface` must match the modal's, or the badge could count a filter the
+  // Collection facet does not render (it is `surfaces: ["plp"]`).
+  const filterParams = useFilterParams(matchedProducts, catalogueReady, "collection");
+
   const { filtered } = useFilteredProducts(matchedProducts, filterParams);
+
+  const [isFilterOpen, setFilterOpen] = useState(false);
 
   const isLoading = !catalogueReady;
 
@@ -96,8 +102,9 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
           {SHOP_CONFIG.plp.showProductCount && !isLoading && (
             <FilterBar
               totalProducts={filtered.length}
-              typeLabel={undefined}
-              category={collection.slug}
+              products={matchedProducts}
+              surface="collection"
+              onOpenFilters={() => setFilterOpen(true)}
             />
           )}
         </div>
@@ -116,6 +123,22 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
           )}
         </div>
       </main>
+
+      {/* `surface="collection"` drops the Collection facet: this page is already
+          a single collection, so offering it as a filter would be a one-option
+          group. */}
+      <FilterSortModal
+        isOpen={isFilterOpen}
+        onClose={() => setFilterOpen(false)}
+        products={matchedProducts}
+        context={{ category: collection?.slug }}
+        surface="collection"
+        resultCount={filtered.length}
+      />
+      {/* Nothing route-shaped is passed. `context.category` is the COLLECTION
+          slug here, and treating it as a category is what used to build
+          `/product/<collection-slug>` and dead-end every collection page. Type
+          removal is an in-place value-level param write on every surface. */}
     </div>
   );
 };

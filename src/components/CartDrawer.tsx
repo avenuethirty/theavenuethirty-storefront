@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Trash2, Plus, Minus, ArrowRight, Check, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CartItem, GuestDetails } from '../types';
@@ -7,6 +7,7 @@ import { getDiscountBadge } from '../utils/discount';
 import { SHOP_CONFIG } from '../config/shop';
 import { PAKISTAN_CITIES } from '../utils/pakistanCities';
 import { useDeliveryLocation } from '../context/LocationContext';
+import { useOverlayLock } from '../utils/overlay';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -49,16 +50,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     }
   }, [slide, detectedCity]);
 
-  // Lock page scroll while the drawer is open (same pattern App.tsx uses for
-  // the AI chat). Without this, Lenis scrolls the page behind the drawer when
-  // the wheel lands on the backdrop or header/footer areas.
-  useEffect(() => {
-    if (!isOpen) return;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Scroll lock, focus trap, `Escape`, focus restore and background inert.
+   *
+   * This replaces a `document.body.style.overflow = 'hidden'` that never
+   * worked: Lenis drives `window`/`documentElement`, so the wheel kept
+   * scrolling the page behind the drawer on the backdrop and on the
+   * drawer header/footer, and focus stayed on whatever was behind the overlay.
+   */
+  useOverlayLock({ active: isOpen, onRequestClose: onClose, panelRef });
 
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.product.priceMonthly * item.quantity,
@@ -135,11 +137,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           onClick={onClose}
         >
           <motion.div
+            ref={panelRef}
+            tabIndex={-1}
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="relative w-full max-w-md bg-white text-[#111110] h-full shadow-2xl flex flex-col"
+            className="relative w-full max-w-md bg-white text-[#111110] h-full shadow-2xl flex flex-col focus:outline-none"
             onClick={(e) => e.stopPropagation()}
           >
         {/* Drawer Header */}
@@ -157,6 +161,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           </div>
 
           <button
+            type="button"
+            aria-label="Close cart"
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white hover:bg-neutral-200 flex items-center justify-center text-[#1A1A1A] border border-black/5 transition-colors"
           >

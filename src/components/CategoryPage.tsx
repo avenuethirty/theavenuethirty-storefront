@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Product } from '../types';
 import { PLPGrid } from './PLPGrid';
 import { Breadcrumbs } from './Breadcrumbs';
 import { FilterBar } from './FilterBar';
+import { FilterSortModal } from './FilterSortModal';
 import { getCategoryLabel } from '../utils/category';
 import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
 import { DEFAULT_SITE_TITLE, pageTitle, SITE_NAME } from '../utils/seoText';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { parseFilterParams, useFilteredProducts } from '../hooks/useFilteredProducts';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useFilterParams, useFilteredProducts } from '../hooks/useFilteredProducts';
 import { SHOP_CONFIG } from '../config/shop';
 
 interface CategoryPageProps {
@@ -34,9 +35,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   const rawTypeSlug = params.productId ?? params.typeSlug;
   const label = getCategoryLabel(category);
 
-  const [searchParams] = useSearchParams();
-  const filterParams = parseFilterParams(searchParams);
-
   const catalogue = products || [];
   const categoryProducts = useMemo(
     () => catalogue.filter((p) => p.category === category),
@@ -58,7 +56,16 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
     );
   }, [categoryProducts, rawTypeSlug, typeLabel]);
 
+  // The scope the facets resolve against: the URL's own type segment, narrowed.
+  // `catalogueReady` keeps the self-heal out of the way while the catalogue is
+  // still in flight, so a cold deep link is never stripped before it resolves.
+  const filterParams = useFilterParams(typeProducts, catalogueReady);
+
   const { filtered } = useFilteredProducts(typeProducts, filterParams);
+
+  // The modal is a local overlay, not a route: filter state lives in the query
+  // string, so closing it must not touch the URL.
+  const [isFilterOpen, setFilterOpen] = useState(false);
 
   // A type slug that matches nothing in the current catalogue is stale
   // (renamed/removed in the sheet). Redirect to the category page rather
@@ -112,8 +119,11 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
           {SHOP_CONFIG.plp.showProductCount && !isLoading && (
             <FilterBar
               totalProducts={filtered.length}
+              products={typeProducts}
+              surface="plp"
               typeLabel={typeLabel || undefined}
               category={category}
+              onOpenFilters={() => setFilterOpen(true)}
             />
           )}
         </div>
@@ -128,6 +138,18 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
           />
         </div>
       </main>
+
+      {/* Scope for the facet registry is the page's product set: `typeProducts`
+          is already narrowed by the URL's type segment, so the drawer's counts
+          and options describe what the operator can actually reach. */}
+      <FilterSortModal
+        isOpen={isFilterOpen}
+        onClose={() => setFilterOpen(false)}
+        products={typeProducts}
+        context={{ category, typeSlug: rawTypeSlug || undefined }}
+        surface="plp"
+        resultCount={filtered.length}
+      />
     </div>
   );
 };

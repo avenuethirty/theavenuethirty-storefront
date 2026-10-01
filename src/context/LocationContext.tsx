@@ -72,7 +72,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
 
           const { latitude, longitude } = position.coords;
-          const geoRes = await fetch(`/api/location/reverse-geocode?latitude=${encodeURIComponent(String(latitude))}&longitude=${encodeURIComponent(String(longitude))}`);
+          const geoRes = await fetch(`/api/location/detect`);
           if (geoRes.ok) {
             const geoData = await geoRes.json();
             if (geoData.success && geoData.city) {

@@ -10,6 +10,7 @@ import {
   injectSEO,
   productPath,
   resolveOrigin,
+  resolveRetiredCollectionRedirect,
   resolveSEOMetadata,
   type ProductLike,
 } from './src/server/seo';
@@ -104,6 +105,14 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
+// Splits a packed multi-value sheet cell into a trimmed, non-empty list.
+// Mirrors the existing Collections parser. Undefined when the cell is empty
+// so absent data stays absent on the wire instead of becoming an empty array.
+function parseList(raw: string): string[] | undefined {
+  const values = raw.split(/[;,]/).map((v) => v.trim()).filter(Boolean);
+  return values.length > 0 ? values : undefined;
+}
+
 function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): any | null {
   const get = (name: string) => {
     const idx = header.indexOf(name);
@@ -121,6 +130,13 @@ function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): 
   const imageUrl3 = get('Image3 Url');
   const description = get('Product description');
   const collections = get('Collections');
+  // `Brand` is a single value; `Colors`/`Sizes` are packed cells, so they go
+  // through parseList() like `Collections` does. `Type` is NEVER split on
+  // commas: values such as "Handbag Set, 3 Pcs Bag Set" contain one.
+  const brand = get('Brand').trim();
+  const colors = parseList(get('Colors'));
+  const sizes = parseList(get('Sizes'));
+  const parentSku = get('Parent SKU').trim();
   const status = get('Availability');
   const availability = get('Availability');
   // Header match is exact, same as every other column read here.
@@ -161,6 +177,10 @@ function mapCsvRowToProduct(row: string[], header: string[], audit: SlugAudit): 
     category: slugifyCategory(category) as any,
     tagline,
     typeSlug: tagline ? toTypeSlug(tagline) : undefined,
+    brand: brand || undefined,
+    colors,
+    sizes,
+    parentSku: parentSku || undefined,
     priceMonthly,
     originalPrice,
     imageUrl: imageUrl || '',
@@ -665,6 +685,19 @@ Assistant: {"reply": "Here are our skincare picks:", "recommended_product_ids": 
         .set({ 'Content-Type': 'application/xml; charset=utf-8' })
         .send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
     }
+  });
+
+  // Retired collection slugs -> their surviving replacement.
+  //
+  // A collection removed from SHOP_CONFIG.collections would otherwise still
+  // answer 200 with "Collection not found", which is a soft-404: an indexed URL
+  // that reports success while carrying nothing. This runs before the product
+  // redirect because it needs no catalogue, so it cannot be delayed by a slow
+  // or failing Google Sheets fetch.
+  app.get('/:retiredSlug', (req, res, next) => {
+    const target = resolveRetiredCollectionRedirect(req.path);
+    if (!target) return next();
+    return res.redirect(301, target);
   });
 
   // Legacy SKU product URLs -> the slug URL, as a real 301.

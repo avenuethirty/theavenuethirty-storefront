@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useRef } from "react";
 import { X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { LogoSvg } from "./Logo";
 import { SHOP_CONFIG } from "../config/shop";
 import { Link } from "react-router-dom";
+import { useOverlayLock } from "../utils/overlay";
 
 interface NavigationMenuDrawerProps {
   isOpen: boolean;
@@ -16,13 +17,14 @@ export const NavigationMenuDrawer: React.FC<NavigationMenuDrawerProps> = ({
   onClose,
   onOpenConsultation,
 }) => {
-  useEffect(() => {
-    if (!isOpen) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * The same non-working `body { overflow: hidden }` the other two drawers
+   * used, replaced by the shared lock: Lenis `stop()` plus an overflow on
+   * `documentElement`, which is the scroller this site actually uses.
+   */
+  useOverlayLock({ active: isOpen, onRequestClose: onClose, panelRef });
 
   return (
     <AnimatePresence>
@@ -36,11 +38,13 @@ export const NavigationMenuDrawer: React.FC<NavigationMenuDrawerProps> = ({
           onClick={onClose}
         >
           <motion.div
+            ref={panelRef}
+            tabIndex={-1}
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="relative w-full max-w-sm bg-[#1A1A1A] text-white h-full shadow-2xl flex flex-col justify-between border-l border-white/10"
+            className="relative w-full max-w-sm bg-[#1A1A1A] text-white h-full shadow-2xl flex flex-col justify-between border-l border-white/10 focus:outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">

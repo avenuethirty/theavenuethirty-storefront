@@ -66,7 +66,6 @@ export interface CollectionMatch {
   minDiscountPct?: number;
   priceMin?: number;
   priceMax?: number;
-  ratingMin?: number;
 }
 
 export interface SEOCollection {
@@ -208,6 +207,37 @@ export function typePath(slug: string, typeSlug: string): string {
 
 export function collectionPath(slug: string): string {
   return `/${slug}`;
+}
+
+/**
+ * Collections that used to exist and whose URLs may already be indexed.
+ *
+ * Deleting a collection from `SHOP_CONFIG.collections` removes it from the
+ * sitemap and makes its URL fall through to `generateNoindexSEO` — which still
+ * answers HTTP 200 with "Collection not found". For an indexed URL that is a
+ * soft-404: the page is gone but reports success, so crawlers keep it in the
+ * index and the equity it held is dropped rather than handed on.
+ *
+ * Retiring a collection therefore has to be a two-part edit: remove it from
+ * `SHOP_CONFIG.collections`, then add it here pointing at the surviving page
+ * with the closest intent. `resolveRedirect` turns it into a real 301.
+ *
+ * Do NOT point these at `/`. A 301 to the homepage is usually worse than a
+ * 410, because it says "this content moved to the top of the site" rather
+ * than admitting it no longer exists.
+ */
+const RETIRED_COLLECTIONS: Record<string, string> = {
+  // "Top Rated" was driven by a rating facet that no longer has data behind it
+  // (the sheet carries no rating column). Best Sellers is the surviving
+  // customer-favourite view, which is the closest equivalent intent.
+  "top-rated": collectionPath("best-sellers"),
+};
+
+/** The path a retired collection slug should 301 to, or null. */
+export function resolveRetiredCollectionRedirect(rawPath: string): string | null {
+  const segments = normalizePath(rawPath).split("/").filter((segment) => segment.length > 0);
+  if (segments.length !== 1) return null;
+  return RETIRED_COLLECTIONS[segments[0]] ?? null;
 }
 
 function escapeHtml(value: string): string {
@@ -774,5 +804,9 @@ export function buildRobotsTxt(origin: string): string {
     "Disallow: /api/",
     "",
     `Sitemap: ${origin}/sitemap.xml`,
+    // Trailing newline, so the file is POSIX-clean and byte-identical to the
+    // api/index.ts copy. Both servers serve this route, and a mirror that
+    // differs by one byte is a mirror nobody can trust on the next change.
+    "",
   ].join("\n");
 }

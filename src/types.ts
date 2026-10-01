@@ -17,10 +17,19 @@ export interface Product {
   tagline: string;
   typeSlug?: string;
   availability?: string;
+  /** Sheet `Brand`. 7 distinct values across the catalogue. */
+  brand?: string;
+  /** Sheet `Colors`, split on /[;,]/. Array because cells are multi-valued. */
+  colors?: string[];
+  /** Sheet `Sizes`, split on /[;,]/. Array because cells are multi-valued. */
+  sizes?: string[];
+  /** Sheet `Parent SKU`. Variant grouping is not implemented yet. */
+  parentSku?: string;
   priceMonthly: number;
   originalPrice?: number;
   imageUrl: string;
   imageUrl2?: string;
+  imageUrl3?: string;
   description: string;
   collections?: string[];
 }
