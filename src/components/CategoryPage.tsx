@@ -4,8 +4,10 @@ import { PLPGrid } from './PLPGrid';
 import { Breadcrumbs } from './Breadcrumbs';
 import { FilterBar } from './FilterBar';
 import { FilterSortModal } from './FilterSortModal';
+import { TypePills } from './TypePills';
 import { getCategoryLabel } from '../utils/category';
 import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
+import { buildTypeEntries } from '../utils/typeSections';
 import { DEFAULT_SITE_TITLE, pageTitle, SITE_NAME } from '../utils/seoText';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFilterParams, useFilteredProducts } from '../hooks/useFilteredProducts';
@@ -39,6 +41,28 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   const categoryProducts = useMemo(
     () => catalogue.filter((p) => p.category === category),
     [catalogue, category]
+  );
+
+  // The type row describes the CATEGORY, not the page's current scope, so it
+  // is derived from `categoryProducts` and never from `typeProducts`: on a
+  // type-scoped route `typeProducts` is already narrowed to that one type, which
+  // would render a single pill — the active one — and no way to reach any other
+  // type. The unsliced set keeps the row complete and stable while the operator
+  // narrows, and `useMemo` keeps the derivation off the render path because it
+  // is pure in these two inputs.
+  const typeSectionConfig = useMemo(
+    () => SHOP_CONFIG.typeSections.find((s) => s.category === category),
+    [category]
+  );
+
+  // `rawTypeSlug` is passed as `ensureSlug` because the config's `limit` is a
+  // homepage merchandising number (six cards on "Find your bag"), and honouring
+  // it here truncates the very pill the visitor is standing on — on a
+  // type-scoped route the row then shows six other types and no current one, so
+  // it marks nothing active and offers no way onward.
+  const typePills = useMemo(
+    () => buildTypeEntries(categoryProducts, category, typeSectionConfig, rawTypeSlug),
+    [categoryProducts, category, typeSectionConfig, rawTypeSlug]
   );
 
   const typeLabel: string | null = useMemo(() => {
@@ -116,9 +140,23 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
             </h1>
           </div>
 
+          {/* Not gated on `isLoading`: while the catalogue is in flight the
+              derivation is simply empty and this renders nothing, so the row
+              appears with the products instead of the grid shifting down under a
+              placeholder. `mb-8` gives the nav its own block so it reads apart
+              from the Filter & Sort toolbar below. */}
+          {typePills.length > 0 && (
+            <div className="mb-8">
+              <TypePills
+                category={category}
+                types={typePills}
+                activeSlug={rawTypeSlug}
+              />
+            </div>
+          )}
+
           {SHOP_CONFIG.plp.showProductCount && !isLoading && (
             <FilterBar
-              totalProducts={filtered.length}
               products={typeProducts}
               surface="plp"
               typeLabel={typeLabel || undefined}

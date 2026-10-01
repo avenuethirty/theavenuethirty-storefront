@@ -3,8 +3,10 @@ import { formatTypeLabel } from "../utils/typeSlug";
 import { DEFAULT_SITE_TITLE, pageTitle, sanitizeSeoText, SITE_NAME } from "../utils/seoText";
 import {
   buildSlugIndex,
+  categoryPath,
   productPath,
   resolveProductSegment,
+  typePath,
   type SlugIndex,
 } from "../utils/productSlug";
 
@@ -192,18 +194,10 @@ export function normalizePath(rawPath: string): string {
 }
 
 // Re-exported so callers that already import the SEO module keep one import
-// site for product URLs. The builder itself lives in src/utils/productSlug.ts
-// because the client, the server, and the serverless mirror all need it and
-// none of them can agree on a second copy.
-export { productPath };
-
-export function categoryPath(slug: string): string {
-  return `/product/${slug}`;
-}
-
-export function typePath(slug: string, typeSlug: string): string {
-  return `/product/${slug}/${typeSlug}`;
-}
+// site for product URLs. The builders themselves live in
+// src/utils/productSlug.ts because the client, the server, and the serverless
+// mirror all need them and none of them can agree on a second copy.
+export { categoryPath, productPath, typePath };
 
 export function collectionPath(slug: string): string {
   return `/${slug}`;

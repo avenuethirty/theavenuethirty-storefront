@@ -6,7 +6,6 @@ import { FilterSurface } from "../config/filters";
 import { parseFilterParams } from "../hooks/useFilteredProducts";
 
 interface FilterBarProps {
-  totalProducts: number;
   /**
    * The page's scoped product set, BEFORE query filters — the same array the
    * modal resolves its groups from.
@@ -35,7 +34,6 @@ interface FilterBarProps {
  * SAME surface, so the count is the count rather than a second opinion.
  */
 export const FilterBar: React.FC<FilterBarProps> = ({
-  totalProducts,
   products,
   // Explicit annotation: with no @types/react the destructure loses its declared
   // prop types, so the literal default would widen to `string`.
@@ -50,11 +48,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   return (
     <div className="mb-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Left group: kept as an element even when empty, because the row is
+            `justify-between` and the trigger has to stay right-aligned on a
+            plain category listing. */}
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[#1A1A1A]/70 font-sans">
-            {totalProducts} Products
-          </span>
-
+          {/* The "{totalProducts} Products" counter lived here and was deleted
+              rather than switched off in config. `plp.showProductCount` is not a
+              counter toggle: `CategoryPage` and `CollectionPage` both gate the
+              WHOLE FilterBar on it, so setting it false would have removed the
+              "Filter & Sort" trigger site-wide — the only way into the facet
+              drawer — to hide one number. The markup goes; the flag and
+              shop.ts stay untouched. */}
           {/* The category route is the way out of a type-scoped listing, so the
               crumb keeps its link now that the modal owns the removable type
               pill. */}

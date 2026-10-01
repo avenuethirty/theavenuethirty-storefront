@@ -101,7 +101,6 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({
 
           {SHOP_CONFIG.plp.showProductCount && !isLoading && (
             <FilterBar
-              totalProducts={filtered.length}
               products={matchedProducts}
               surface="collection"
               onOpenFilters={() => setFilterOpen(true)}

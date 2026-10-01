@@ -3,21 +3,14 @@ import { motion } from 'motion/react';
 import { Product } from '../types';
 import { SHOP_CONFIG } from '../config/shop';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
-import { toTypeSlug, formatTypeLabel } from '../utils/typeSlug';
 import { getCategoryLabel } from '../utils/category';
+import { buildTypeEntries, type TypeEntry } from '../utils/typeSections';
+import { TypePills } from './TypePills';
 import { TypeSectionConfig } from '../config/shop';
 
 interface TypeSectionProps {
   category: string;
   products: Product[];
-}
-
-interface TypeEntry {
-  slug: string;
-  label: string;
-  count: number;
-  image: string;
 }
 
 // Tailwind v4 scans source for static class strings, so grid values map to static classes.
@@ -55,46 +48,10 @@ export const TypeSection: React.FC<TypeSectionProps> = ({ category, products }) 
   );
   if (!config) return null;
 
-  // Group the category's products by type slug, collecting counts and the
-  // first available product image per type as the fallback card image.
-  const bySlug = new Map<
-    string,
-    { label: string; count: number; image?: string }
-  >();
-
-  for (const product of products) {
-    if (product.category !== category) continue;
-    const tagline = product.tagline?.trim();
-    if (!tagline) continue;
-
-    const slug = product.typeSlug || toTypeSlug(tagline);
-    const entry =
-      bySlug.get(slug) || { label: tagline, count: 0, image: undefined };
-    if (!entry.image && product.imageUrl) entry.image = product.imageUrl;
-    entry.count += 1;
-    bySlug.set(slug, entry);
-  }
-
-  if (bySlug.size === 0) return null;
-
-  const overrides = config.types || {};
-
-  let types: TypeEntry[] = Array.from(bySlug.entries()).map(([slug, entry]) => ({
-    slug,
-    label: overrides[slug]?.label || formatTypeLabel(entry.label),
-    count: entry.count,
-    // Config image wins; fall back to the type's first product image.
-    image: overrides[slug]?.image || entry.image || '',
-  }));
-
-  // Pinned order first (by order asc), then count desc for the rest.
-  const pinned = types
-    .filter((t) => overrides[t.slug]?.order !== undefined)
-    .sort((a, b) => (overrides[a.slug]!.order ?? 0) - (overrides[b.slug]!.order ?? 0));
-  const rest = types
-    .filter((t) => overrides[t.slug]?.order === undefined)
-    .sort((a, b) => b.count - a.count);
-  types = [...pinned, ...rest].slice(0, config.limit ?? 8);
+  // Shared with the PLP pill row so the homepage section and the listing page
+  // cannot describe the same category differently.
+  const types: TypeEntry[] = buildTypeEntries(products, category, config);
+  if (types.length === 0) return null;
 
   const categoryLabel = getCategoryLabel(category);
   const title =
@@ -109,19 +66,10 @@ export const TypeSection: React.FC<TypeSectionProps> = ({ category, products }) 
               {title}
             </h2>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {types.map((type) => (
-              <Link
-                key={type.slug}
-                to={`/product/${category}/${type.slug}`}
-                className="group inline-flex items-center gap-2 border border-neutral-300 rounded-full px-5 py-2.5 text-xs font-medium text-[#1A1A1A] hover:border-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white transition-all"
-              >
-                <span>{type.label}</span>
-                <span className="text-[10px] opacity-60">{type.count}</span>
-                <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-            ))}
-          </div>
+          {/* No `activeSlug`: the homepage is not a type listing, so the row
+              renders centred with no All pill and no active state — exactly as
+              it did inline. */}
+          <TypePills category={category} types={types} centered />
         </div>
       </section>
     );

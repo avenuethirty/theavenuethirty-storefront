@@ -46,6 +46,24 @@ export function productPath(product: SlugProductLike): string {
   return `/product/${product.category}${typeSegment}/${product.slug || product.id}`;
 }
 
+/**
+ * The two listing-route shapes, beside `productPath` for the same reason.
+ *
+ * The PLP's pill row links to types, and AGENTS.md's rule is that no route
+ * assembles `/product/...` by hand — yet `typePath` used to live only in
+ * `src/server/seo.ts`, which a client component cannot import without dragging
+ * the whole server SEO module (and `SHOP_CONFIG` with it) into the browser
+ * bundle. One definition here, re-exported by `seo.ts`, keeps the public SEO
+ * surface unchanged and the copies in `server.ts` / `api/index.ts` in step.
+ */
+export function categoryPath(slug: string): string {
+  return `/product/${slug}`;
+}
+
+export function typePath(slug: string, typeSlug: string): string {
+  return `/product/${slug}/${typeSlug}`;
+}
+
 // ---------------------------------------------------------------------------
 // Index
 // ---------------------------------------------------------------------------
