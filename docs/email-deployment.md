@@ -11,7 +11,7 @@ This package is for the approved development database. It is not a production co
 
 ## Prerequisite
 
-The project source is available in [theavenuethirty/theavenuethirty-storefront](https://github.com/theavenuethirty/theavenuethirty-storefront), on main. Connect this repository in Render. No hosted deployment has been created by this work. Do not publish .env or .local. Docker ignores both directories.
+The project source is available in [avenuethirty/theavenuethirty-storefront](https://github.com/avenuethirty/theavenuethirty-storefront), on main. Connect this repository in Render. No hosted deployment has been created by this work. Do not publish .env or .local. Docker ignores both directories.
 
 ## Directus SMTP in the existing Render service
 
@@ -60,3 +60,7 @@ The worker claims one job immediately before sending, uses stable Resend idempot
 To stop sending, set NOTIFICATIONS_ENABLED=false and redeploy. Keep the webhook active to record late delivery outcomes. Do not clear idempotency history or manually reset accepted jobs. Review manual_review jobs privately in CMS. /healthz becomes unhealthy after five minutes of worker failures while sending is enabled. Logs intentionally omit recipients, message bodies, credentials and receipt capabilities.
 
 Retention policy and production alerting remain launch work. Shipping notifications require the shipment workflow. Directus password resets use SMTP; customer login remains the separately planned phone authentication flow.
+
+## Runtime readiness diagnostics
+
+The email service logs readiness booleans at startup and returns them from /healthz: workerEnabled, webhookConfigured, testInboxConfigured and verifiedDatabaseTls. No key, recipient, database URL or certificate contents are exposed. For the enabled development deployment, all four should be true. If webhookConfigured is false despite the dashboard setting, Save and deploy the Environment changes on the email service and verify the selected deployment/source. A 200 health response alone does not prove enabled sending or webhook configuration.

@@ -13,11 +13,13 @@ const ca=process.env.COMMERCE_DATABASE_CA_FILE?await readFile(process.env.COMMER
 const pool=new pg.Pool(commerceConnectionConfig(process.env.COMMERCE_NOTIFY_DATABASE_URL,ca,process.env.COMMERCE_ALLOW_UNVERIFIED_TLS==='true'))
 const recipient=process.env.NOTIFICATIONS_TEST_RECIPIENT?z.email().parse(process.env.NOTIFICATIONS_TEST_RECIPIENT):undefined
 const port=z.coerce.number().int().min(1).max(65535).parse(process.env.PORT||3100)
+const readiness={workerEnabled:process.env.NOTIFICATIONS_ENABLED==='true',webhookConfigured:!!process.env.RESEND_WEBHOOK_SECRET?.trim(),testInboxConfigured:!!recipient,verifiedDatabaseTls:process.env.COMMERCE_ALLOW_UNVERIFIED_TLS!=='true'}
+console.log('Email service readiness:',JSON.stringify(readiness))
 let running=false,stopping=false,lastHealthy=Date.now()
 async function tick(){if(running||stopping||process.env.NOTIFICATIONS_ENABLED!=='true')return;running=true;try{await processNotificationBatch(pool,process.env.RESEND_API_KEY,(job,key)=>deliverNotification(job,key,fetch,recipient));lastHealthy=Date.now()}catch{console.error('Email worker failed; private details withheld.')}finally{running=false}}
 const server=createServer(async(req,res)=>{
  try{
- if(req.url==='/healthz'&&req.method==='GET'){const healthy=process.env.NOTIFICATIONS_ENABLED!=='true'||Date.now()-lastHealthy<300000;res.writeHead(healthy?200:503,{'Cache-Control':'no-store'});res.end(healthy?'ok':'unavailable');return}
+ if(req.url==='/healthz'&&req.method==='GET'){const healthy=process.env.NOTIFICATIONS_ENABLED!=='true'||Date.now()-lastHealthy<300000;res.writeHead(healthy?200:503,{'Cache-Control':'no-store','Content-Type':'application/json'});res.end(JSON.stringify({status:healthy?'ok':'unavailable',...readiness}));return}
  if(req.url!=='/webhooks/resend'||req.method!=='POST'){res.writeHead(404);res.end();return}
  const request=new Request('http://localhost/webhooks/resend',{method:'POST',headers:new Headers(Object.entries(req.headers).flatMap(([key,value])=>value===undefined?[]:[[key,Array.isArray(value)?value.join(','):value]])),body:Readable.toWeb(req) as ReadableStream,duplex:'half'} as RequestInit)
  const result=await handleEmailWebhook(request,process.env.RESEND_WEBHOOK_SECRET,async(id,provider,status,created)=>{await pool.query('select avenue_private.record_email_delivery($1,$2,$3,$4)',[id,provider,status,created])})

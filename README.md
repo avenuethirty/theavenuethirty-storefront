@@ -36,7 +36,7 @@ Supplier applications remain disabled unless a separate token and `SUPPLIER_APPL
 
 CMS supports plain-text hero/text/FAQ sections, curated product rails, brand rails, publication schedules, internal navigation, and public settings. Department landing content uses a page slug such as `women-home` with the matching department. All carousels are manual. ImageKit delivery URLs are implemented; staff-authorised media uploads remain pending.
 
-See `docs/implementation-progress.md` for remaining work and `docs/commerce-next-stage.md` for the transactional design boundary. The project is published to theavenuethirty/theavenuethirty-storefront. Hosted deployment remains pending.
+See `docs/implementation-progress.md` for remaining work and `docs/commerce-next-stage.md` for the transactional design boundary. The project is published to avenuethirty/theavenuethirty-storefront. Hosted deployment remains pending.
 
 ## Development commerce and email
 
