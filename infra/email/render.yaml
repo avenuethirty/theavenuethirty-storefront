@@ -1,0 +1,26 @@
+# Apply manually only after selecting an appropriate hosting plan.
+services:
+  - type: web
+    name: avenue-email-development
+    runtime: docker
+    plan: free
+    dockerfilePath: ./infra/email/Dockerfile
+    healthCheckPath: /healthz
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: development
+      - key: EMAIL_SERVICE_DEVELOPMENT_TARGET_CONFIRMED
+        value: "true"
+      - key: NOTIFICATIONS_ENABLED
+        value: "false"
+      - key: COMMERCE_NOTIFY_DATABASE_URL
+        sync: false
+      - key: COMMERCE_DATABASE_CA_FILE
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_WEBHOOK_SECRET
+        sync: false
+      - key: NOTIFICATIONS_TEST_RECIPIENT
+        value: orders@theavenuethirty.com

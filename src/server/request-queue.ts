@@ -1,0 +1,1 @@
+export function requestQueue(concurrency:number){let active=0;const pending:(()=>void)[]=[];return async function run<T>(work:()=>Promise<T>):Promise<T>{if(active>=concurrency)await new Promise<void>(resolve=>pending.push(resolve));else active++;try{return await work()}finally{const next=pending.shift();if(next)next();else active--}}}

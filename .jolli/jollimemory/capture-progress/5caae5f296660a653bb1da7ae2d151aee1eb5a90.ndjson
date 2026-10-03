@@ -1,6 +1,0 @@
-{"step":"start","hash":"5caae5f296660a653bb1da7ae2d151aee1eb5a90","ts":1789511704242}
-{"step":"diff","hash":"5caae5f296660a653bb1da7ae2d151aee1eb5a90","ts":1789511704336,"data":{"filesChanged":6,"insertions":50,"deletions":8}}
-{"step":"references","hash":"5caae5f296660a653bb1da7ae2d151aee1eb5a90","ts":1789511704353,"data":{"references":[],"notes":0}}
-{"step":"analyzing","hash":"5caae5f296660a653bb1da7ae2d151aee1eb5a90","ts":1789511704353}
-{"step":"stored","hash":"5caae5f296660a653bb1da7ae2d151aee1eb5a90","ts":1789511713992,"data":{"topics":0,"llmFailure":"Local agent exited with code 1. \u001b[91m\u001b[1mError: \u001b[0m{\n  \"name\": \"UnknownError\",\n  \"data\": {\n    \"message\": \"Unexpected server error. Check server logs for details.\",\n    \"ref\": \"err_acbe802d\"\n  }\n}"}}
-{"step":"end","hash":"5caae5f296660a653bb1da7ae2d151aee1eb5a90","ts":1789511713992,"terminal":true}

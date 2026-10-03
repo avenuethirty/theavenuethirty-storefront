@@ -1,0 +1,6 @@
+import {expect,it} from 'vitest'
+import {invoicePreview} from '../../src/features/commerce/invoice-preview'
+const order={order_number:'DEV-100004',status:'placed',currency:'PKR',subtotal_minor:450000,shipping_minor:0,total_minor:450000,address_id:{recipient_name:'Sample buyer',line1:'Test street',city:'Lahore',postal_code:'',country:'PK'},lines:[{sku:'CAP',product_name:'Sample cap',variant_name:'Default',quantity:1,unit_price_minor:450000,line_total_minor:450000}]}
+const merchant={legal_business_name:'The Avenue Thirty',billing_address:'Paris Road Street Number 4 (51310) Sialkot, Pakistan',tax_registration:'Pending setup',tax_treatment:'pending'}
+it('labels a private preview as a draft and keeps tax pending',()=>{const draft=invoicePreview(order,merchant);expect(draft.title).toBe('Draft invoice preview');expect(draft.taxStatus).toBe('Pending setup');expect(draft.totalMinor).toBe(450000);expect(draft).not.toHaveProperty('invoiceNumber');expect(draft.notice).toContain('not a tax invoice')})
+it('rejects a changed total or line extension and missing business configuration',()=>{expect(()=>invoicePreview({...order,total_minor:1},merchant)).toThrow();expect(()=>invoicePreview({...order,lines:[{...order.lines[0],line_total_minor:1}]},merchant)).toThrow();expect(()=>invoicePreview(order,{...merchant,billing_address:''})).toThrow()})

@@ -1,0 +1,5 @@
+import {createFileRoute,Link} from '@tanstack/react-router'
+import {getReceipt} from '../features/commerce/functions'
+import {formatMoney} from '../features/catalogue/model'
+export const Route=createFileRoute('/orders/$receipt')({loader:({params})=>getReceipt({data:params.receipt}),head:()=>({meta:[{name:'robots',content:'noindex,nofollow'},{name:'referrer',content:'no-referrer'}]}),component:Receipt})
+function Receipt(){const order=Route.useLoaderData();return <main id="main" className="container narrow">{order?<><h1>Test order saved</h1><p>Order number: <strong>{order.orderNumber}</strong></p><p>Status: {order.status}. Payment: Cash on delivery, pending.</p><p>No delivery or payment will be initiated for this development order.</p>{order.lines.map(line=><p key={line.sku}>{line.name}, quantity {line.quantity}: {formatMoney(Number(line.lineTotalMinor))}</p>)}<p>Total: {formatMoney(Number(order.totalMinor))}</p></>:<h1>Order receipt unavailable</h1>}<Link to="/">Return to the store</Link></main>}

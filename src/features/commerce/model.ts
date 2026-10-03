@@ -1,0 +1,4 @@
+import {z} from 'zod'
+export const orderInput=z.object({name:z.string().trim().min(2).max(100),phone:z.string().regex(/^\+[1-9][0-9]{7,14}$/),address:z.object({line1:z.string().trim().min(5).max(200),city:z.string().trim().min(2).max(100),postalCode:z.string().trim().max(20).default(''),country:z.literal('PK'),email:z.union([z.email().max(254),z.literal('')]).optional()}),lines:z.array(z.object({sku:z.string().min(1).max(100),quantity:z.number().int().min(1).max(20)}).strict()).min(1).max(20)}).strict().refine(value=>new Set(value.lines.map(line=>line.sku)).size===value.lines.length,'Duplicate SKU')
+export type OrderInput=z.infer<typeof orderInput>
+export function canonicalOrder(input:OrderInput){const address={...input.address};if(!address.email)delete address.email;return JSON.stringify({...input,address,lines:[...input.lines].sort((a,b)=>a.sku.localeCompare(b.sku))})}
