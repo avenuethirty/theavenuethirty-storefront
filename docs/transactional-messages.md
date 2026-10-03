@@ -6,9 +6,9 @@ Resend is approved for transactional email. Sender: The Avenue Thirty <orders@ma
 
 Optional checkout and staff-order email is private contact information, separate from phone identity. Order placement and cancellation enqueue email events atomically with the order transaction. Orders without email remain awaiting_recipient. Private CMS queue fields are read-only.
 
-The separate commerce worker uses a restricted Postgres account with only claim, acknowledgement and retry commands. Claims use exclusive leases. Provider requests use a stable event idempotency key, bounded retries and a 20-hour retry window, shorter than Resend's 24-hour idempotency retention. Exhausted or permanently rejected requests move to manual_review. Accepted means Resend accepted the request, not that an inbox received it. Signed provider delivery webhooks are implemented with deduplication and acknowledgement reconciliation. The public endpoint still needs manual deployment and Resend registration.
+The separate commerce worker uses a restricted Postgres account with only claim, acknowledgement and retry commands. Claims use exclusive leases. Provider requests use a stable event idempotency key, bounded retries and a 20-hour retry window, shorter than Resend's 24-hour idempotency retention. Exhausted or permanently rejected requests move to manual_review. Accepted means Resend accepted the request, not that an inbox received it. Signed provider delivery webhooks are implemented with deduplication and acknowledgement reconciliation. The public endpoint is deployed on avenue-email-development.onrender.com and signed delivery tracking has been verified against hosted-worker emails.
 
-Development sending permits Resend's simulator plus a single explicitly configured test inbox. The approved test inbox is orders@theavenuethirty.com. Other recipients remain blocked. Production sending is disabled. A standalone webhook service and 60-second worker are prepared but not deployed. The worker requires NOTIFICATIONS_ENABLED=true. Directus SMTP configuration does not schedule this commerce worker.
+Development sending permits Resend's simulator plus a single explicitly configured test inbox. The approved test inbox is orders@theavenuethirty.com. Other recipients remain blocked. Production sending is disabled. The standalone webhook service and 60-second worker are deployed and enabled for development. The worker requires NOTIFICATIONS_ENABLED=true. Directus SMTP configuration does not schedule this commerce worker.
 
 ## Verification
 
@@ -27,3 +27,5 @@ The owner must register and verify this number in the WhatsApp Business App on t
 Manual deployment files, the complete environment list and dashboard steps are in [email-deployment.md](email-deployment.md). No Render API key is requested or required.
 
 The full development order email journey DEV-100080 was verified: confirmation and cancellation were accepted by Resend; provider retrieval reported delivered for both, recorded as poll evidence. The order is cancelled and its stock was released. Inbox visibility remains pending recipient confirmation. Directus SMTP was attempted separately and remains unverified.
+
+Hosted verification: DEV-100081 placement and cancellation both reached accepted/delivered through the hosted worker, each with two non-poll delivery events. The order is cancelled with zero active reservations. Unsigned requests return 400 and all health readiness flags are true. Directus SMTP remains unverified because admin.theavenuethirty.com requests currently time out.

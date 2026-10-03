@@ -134,3 +134,10 @@ The user requested sample brand onboarding through checkout and explicitly chose
 - Directus SMTP temporary Flow attempted once and cleaned up, but the message was not observed in Resend. User asked whether Render Free is used and to change blocked port 587 to Resend STARTTLS port 2587 if applicable. SMTP success is not claimed.
 - Fresh review reported no important correctness/security findings. Final verification: 63 unit/live tests, TypeScript, production build and client secret scan passed. Standalone HTTP health smoke passed; an unconfigured webhook correctly returned 503. Test service stopped afterwards.
 - Manual guide: docs/email-deployment.md. Actual endpoint registration, hosted scheduling and SMTP/inbox confirmation require the user's dashboard steps. Production launch, customer sending and shipping workflow remain closed.
+
+## Hosted email acceptance, 2026-10-04
+
+- Live /healthz returned all readiness flags true. Unsigned webhook probe returned 400, as expected.
+- Hosted test DEV-100081: placement and cancellation both accepted/delivered, with two non-poll delivery events each. Verification used no local dispatch and no provider-poll writes. Hosted worker plus signed webhook delivery tracking are confirmed.
+- Test order remains cancelled with zero active reservations. Recipient restriction remains the approved development inbox and simulator; production customer sending is closed.
+- Directus /server/health timed out with zero response bytes after 15 seconds. System SMTP remains separately unverified until Directus availability is restored.
