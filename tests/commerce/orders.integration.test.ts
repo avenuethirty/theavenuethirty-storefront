@@ -50,7 +50,8 @@ it.skipIf(!enabled)('serializes the last unit, retries without double reservatio
  expect(retry).toEqual(success)
  expect((await pool!.query('select count(*)::int n from public.notification_outbox n join public.orders o on o.id=n.order_id where o.idempotency_key=$1',[keys[winner]])).rows[0].n).toBe(1)
  await expect(placeOrder(runtime!,'test-secret',{...input,name:'Changed name'},keys[winner],winner===0?'website':'staff_phone',winner===0?null:actor)).rejects.toThrow('IDEMPOTENCY_CONFLICT')
- const receipt=await readReceipt(runtime!,success.receipt);expect(receipt?.totalMinor).toBe(100);expect(receipt).not.toHaveProperty('phone')
+ const receipt=await readReceipt(runtime!,success.receipt);expect(receipt?.totalMinor).toBe(25100);expect(receipt).not.toHaveProperty('phone')
+ await pool!.query("update public.products set status='draft' where id=$1",[product]);expect(await placeOrder(runtime!,'test-secret',input,keys[winner],winner===0?'website':'staff_phone',winner===0?null:actor)).toEqual(success);await pool!.query("update public.products set status='published' where id=$1",[product])
  const order=(await pool!.query('select id from public.orders where idempotency_key=$1',[keys[winner]])).rows[0].id
  expect((await pool!.query('select a.email from public.customer_addresses a join public.orders o on o.address_id=a.id where o.id=$1',[order])).rows[0].email).toBe('delivered@resend.dev')
  expect((await pool!.query('select status,recipient from public.notification_outbox where order_id=$1',[order])).rows[0]).toMatchObject({status:'queued',recipient:'delivered@resend.dev'})

@@ -8,5 +8,5 @@ const pool=new pg.Pool(commerceConnectionConfig(process.env.COMMERCE_DATABASE_UR
 try {
  const catalogue=await pool.query("select count(*)::int as count from public.products where slug in ('sample-cotton-oxford-shirt','sample-cotton-cap')")
  if(catalogue.rows[0].count!==2)throw new Error('Unexpected database target')
- for(const path of ['migrations/001-commerce.sql','migrations/003-notification-outbox.sql','migrations/004-email-delivery.sql','migrations/002-order-commands.sql','migrations/005-email-events.sql']) {await pool.query(await readFile(path,'utf8'));console.log(`Applied ${path}`)}
+ for(const path of ['migrations/001-commerce.sql','migrations/003-notification-outbox.sql','migrations/004-email-delivery.sql','migrations/002-order-commands.sql','migrations/005-email-events.sql','migrations/006-safepay-sandbox.sql','migrations/007-commerce-policies.sql']) {await pool.query(await readFile(path,'utf8'));console.log(`Applied ${path}`)}
 } catch(error) {console.error(`Commerce migration failed (${(error as {code?:string}).code || 'CONFIGURATION'}). No credentials printed.`);process.exitCode=1} finally{await pool.end()}

@@ -141,3 +141,12 @@ The user requested sample brand onboarding through checkout and explicitly chose
 - Hosted test DEV-100081: placement and cancellation both accepted/delivered, with two non-poll delivery events each. Verification used no local dispatch and no provider-poll writes. Hosted worker plus signed webhook delivery tracking are confirmed.
 - Test order remains cancelled with zero active reservations. Recipient restriction remains the approved development inbox and simulator; production customer sending is closed.
 - Directus /server/health timed out with zero response bytes after 15 seconds. System SMTP remains separately unverified until Directus availability is restored.
+
+## Development commerce policies, 2026-10-05
+
+- Migration 007 applied to the approved development database and registered in Directus. Private Store Commerce Settings now holds PKR 250 shipping, free shipping at PKR 5,000, configurable deposits and regional triggers. Automatic deposits remain disabled pending the default amount and calculation base.
+- Website and staff checkout now require server quote review. Price/rule changes reject stale submission, shipping-quote products block ordinary checkout, and advance-payment-review products cannot be confirmed prematurely.
+- New unconfirmed COD orders have 24-hour holds, immutable policy/monetary snapshots and an authorised staff confirmation command. Legacy orders are unchanged. Atomic expiry releases allocations exactly once and records cancellation; confirmed orders are protected.
+- Dedicated maintenance account has only the expiry command, with no direct table access or other private application commands. Docker deployment and manual instructions: docs/commerce-policies.md. Hosted maintenance is not deployed; free-instance scheduling would be development-only.
+- Validation: 74 unit tests pass, two optional integration tests skipped by default; both live database integration tests pass when enabled. Rollback-only policy checks pass. Typecheck, build and client secret checks pass. Verification fixtures and policy edits rolled back.
+- Browser checkout acceptance remains incomplete: connected catalogue and health requests timed out and the explicit store-unavailable screen rendered. CMS metadata registration succeeded separately. Production checkout, paid gateways, courier integration, refund/return processing and tax-compliant invoices remain closed or pending.

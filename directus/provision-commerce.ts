@@ -18,6 +18,7 @@ try {
  if(!existing.rowCount){const sql=await pool.query("select format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT', $1::text,$2::text) as sql",[role,state.password]);await pool.query(sql.rows[0].sql)}
  await pool.query(`GRANT USAGE ON SCHEMA avenue_private TO ${role}`)
  await pool.query(`GRANT EXECUTE ON FUNCTION avenue_private.place_order(uuid,text,text,text,text,jsonb,jsonb,text,uuid), avenue_private.order_receipt(text), avenue_private.cancel_order(uuid,uuid) TO ${role}`)
+ const policies=await pool.query("select to_regprocedure('avenue_private.commerce_quote(jsonb,text)') present");if(policies.rows[0].present)await pool.query(`GRANT EXECUTE ON FUNCTION avenue_private.commerce_quote(jsonb,text),avenue_private.confirm_cod_order(uuid,uuid) TO ${role}`)
  const url=new URL(process.env.COMMERCE_DATABASE_URL!)
  const suffix=decodeURIComponent(url.username).split('.').slice(1).join('.')
  url.username=role+(suffix?'.'+suffix:'');url.password=state.password
